@@ -1,90 +1,87 @@
 "use client";
 
 import type React from "react";
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useSyncExternalStore,
+} from "react";
 
 type ThemeMode = "light" | "dark" | "auto";
 type ResolvedTheme = "light" | "dark";
 
 type ThemeContextType = {
-  theme: ResolvedTheme; // Resolved theme actually active ("light" or "dark")
-  themeMode: ThemeMode; // The configured preference ("light", "dark", or "auto")
+  theme: ResolvedTheme; // Tema realmente activo ("light" o "dark")
+  themeMode: ThemeMode; // Preferencia guardada ("light", "dark" o "auto")
   setThemeMode: (mode: ThemeMode) => void;
   toggleTheme: () => void;
 };
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+const CLAVE_MODO = "theme-mode";
+const CONSULTA_OSCURO = "(prefers-color-scheme: dark)";
+
+// La preferencia vive en localStorage (sistema externo). Se lee con
+// useSyncExternalStore: en el servidor vale "light" y en el navegador el valor
+// guardado, sin setState dentro de efectos ni errores de hidratación.
+const oyentesModo = new Set<() => void>();
+
+function suscribirModo(avisar: () => void) {
+  oyentesModo.add(avisar);
+  window.addEventListener("storage", avisar); // cambios desde otras pestañas
+  return () => {
+    oyentesModo.delete(avisar);
+    window.removeEventListener("storage", avisar);
+  };
+}
+
+function leerModo(): ThemeMode {
+  const guardado = localStorage.getItem(CLAVE_MODO);
+  return guardado === "dark" || guardado === "auto" ? guardado : "light";
+}
+
+function guardarModo(mode: ThemeMode) {
+  localStorage.setItem(CLAVE_MODO, mode);
+  oyentesModo.forEach((avisar) => avisar());
+}
+
+function suscribirSistema(avisar: () => void) {
+  const consulta = window.matchMedia(CONSULTA_OSCURO);
+  consulta.addEventListener("change", avisar);
+  return () => consulta.removeEventListener("change", avisar);
+}
+
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [themeMode, setThemeModeState] = useState<ThemeMode>("light");
-  const [theme, setTheme] = useState<ResolvedTheme>("light");
-  const [isInitialized, setIsInitialized] = useState(false);
+  const themeMode = useSyncExternalStore(
+    suscribirModo,
+    leerModo,
+    () => "light" as ThemeMode,
+  );
+  const sistemaOscuro = useSyncExternalStore(
+    suscribirSistema,
+    () => window.matchMedia(CONSULTA_OSCURO).matches,
+    () => false,
+  );
 
+  const theme: ResolvedTheme =
+    themeMode === "auto" ? (sistemaOscuro ? "dark" : "light") : themeMode;
+
+  // Sincroniza el DOM con el tema (efecto hacia un sistema externo).
   useEffect(() => {
-    // This code will only run on the client side
-    const savedMode = localStorage.getItem("theme-mode") as ThemeMode | null;
-    const legacySavedTheme = localStorage.getItem(
-      "theme",
-    ) as ResolvedTheme | null;
-    const initialMode = savedMode || (legacySavedTheme as ThemeMode) || "light";
+    const raiz = document.documentElement;
+    raiz.classList.toggle("dark", theme === "dark");
+    raiz.setAttribute("data-color-scheme", theme);
+  }, [theme]);
 
-    setThemeModeState(initialMode);
-    setIsInitialized(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isInitialized) return;
-
-    localStorage.setItem("theme-mode", themeMode);
-
-    if (themeMode === "auto") {
-      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
-      const handleChange = () => {
-        const resolved = mediaQuery.matches ? "dark" : "light";
-        setTheme(resolved);
-      };
-
-      handleChange();
-
-      mediaQuery.addEventListener("change", handleChange);
-      return () => {
-        mediaQuery.removeEventListener("change", handleChange);
-      };
-    } else {
-      setTheme(themeMode as ResolvedTheme);
-    }
-  }, [themeMode, isInitialized]);
-
-  useEffect(() => {
-    if (isInitialized) {
-      localStorage.setItem("theme", theme);
-      if (theme === "dark") {
-        document.documentElement.classList.add("dark");
-        document.documentElement.setAttribute("data-color-scheme", "dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-        document.documentElement.setAttribute("data-color-scheme", "light");
-      }
-    }
-  }, [theme, isInitialized]);
-
-  const setThemeMode = (mode: ThemeMode) => {
-    setThemeModeState(mode);
-  };
-
-  const toggleTheme = () => {
-    setThemeModeState((prevMode) => {
-      const currentResolved = theme;
-      return currentResolved === "light" ? "dark" : "light";
-    });
-  };
+  const toggleTheme = () => guardarModo(theme === "light" ? "dark" : "light");
 
   return (
     <ThemeContext.Provider
-      value={{ theme, themeMode, setThemeMode, toggleTheme }}
+      value={{ theme, themeMode, setThemeMode: guardarModo, toggleTheme }}
     >
       {children}
     </ThemeContext.Provider>

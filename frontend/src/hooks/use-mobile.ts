@@ -1,21 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 const MOBILE_BREAKPOINT = 1280; // xl breakpoint — matches TailAdmin sidebar's xl:translate-x-0
+const CONSULTA = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`;
 
+function suscribir(avisar: () => void) {
+  const mql = window.matchMedia(CONSULTA);
+  mql.addEventListener("change", avisar);
+  return () => mql.removeEventListener("change", avisar);
+}
+
+// useSyncExternalStore en vez de setState dentro de un efecto: en el servidor
+// devuelve false (como antes) y en el navegador el valor real del media query.
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = useState<boolean | undefined>(undefined);
-
-  useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
-    const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
-    };
-    mql.addEventListener("change", onChange);
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
-
-  return !!isMobile;
+  return useSyncExternalStore(
+    suscribir,
+    () => window.matchMedia(CONSULTA).matches,
+    () => false,
+  );
 }
