@@ -21,7 +21,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const req = http.getRequest<Request>();
 
     if (exception instanceof HttpException) {
-      res.status(exception.getStatus()).json(exception.getResponse());
+      const status = exception.getStatus();
+      const cuerpo = exception.getResponse();
+      res
+        .status(status)
+        .json(
+          typeof cuerpo === 'string'
+            ? { statusCode: status, message: cuerpo }
+            : cuerpo,
+        );
       return;
     }
 
