@@ -17,9 +17,9 @@ import {
 export class ActualizarClienteDto {
   @SiLlega()
   @TextoLimpio()
+  @MaxLength(120, { message: 'El nombre admite máximo 120 caracteres' })
   @IsString({ message: 'El nombre es obligatorio' })
   @IsNotEmpty({ message: 'El nombre es obligatorio' })
-  @MaxLength(120, { message: 'El nombre admite máximo 120 caracteres' })
   nombre?: string;
 
   // SWR-CLI-003 + AJ-08. Si cambia, se vuelve a revisar el duplicado.

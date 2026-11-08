@@ -18,9 +18,9 @@ export class CrearEquipoDto {
   tipoEquipoId: number;
 
   @TextoLimpio()
+  @MaxLength(60, { message: 'La marca admite máximo 60 caracteres' })
   @IsString({ message: 'La marca es obligatoria' })
   @IsNotEmpty({ message: 'La marca es obligatoria' })
-  @MaxLength(60, { message: 'La marca admite máximo 60 caracteres' })
   marca: string;
 
   @IsOptional()

@@ -8,7 +8,10 @@ import { CrearEquipoDto } from './crear-equipo.dto';
 // Simula lo que hace el ValidationPipe global: transformar y validar.
 async function procesar<T extends object>(clase: new () => T, cuerpo: object) {
   const dto = plainToInstance(clase, cuerpo);
-  const errores = await validate(dto, { whitelist: true });
+  const errores = await validate(dto, {
+    whitelist: true,
+    stopAtFirstError: true, // igual que el ValidationPipe de main.ts
+  });
   const mensajes = errores.flatMap((e) => Object.values(e.constraints ?? {}));
   return { dto, campos: errores.map((e) => e.property), mensajes };
 }
@@ -110,7 +113,10 @@ describe('DTO de clientes y equipos', () => {
 
     // Assert
     expect(r1.campos).toEqual(['tipoEquipoId', 'marca']);
-    expect(r1.mensajes).toContain('La marca es obligatoria');
+    expect(r1.mensajes).toEqual([
+      'El tipo de equipo es obligatorio',
+      'La marca es obligatoria',
+    ]);
     expect(r2.campos).toEqual([]);
     expect(r2.dto.tipoEquipoId).toBe(2);
     expect(r2.dto.referencia).toBeNull();

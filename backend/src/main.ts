@@ -22,6 +22,8 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      // Un solo mensaje por campo (el primero que falle), no varios repetidos.
+      stopAtFirstError: true,
       // Registra VALIDATION_FAILED con los nombres de los campos (sin valores).
       exceptionFactory: crearErrorValidacion,
     }),
