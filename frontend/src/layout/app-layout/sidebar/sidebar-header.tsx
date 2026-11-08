@@ -1,9 +1,9 @@
 "use client";
 
 import { SidebarHeader } from "@/components/ui/sidebar";
-import Link from "next/link";
 import { cn } from "@/utils";
 import Image from "next/image";
+import Link from "next/link";
 
 interface AppSidebarHeaderProps {
   showContent: boolean;
@@ -16,6 +16,7 @@ export default function AppSidebarHeader({
     <SidebarHeader className="px-5 py-8">
       <Link
         href="/"
+        aria-label="MultiServ, ir al inicio"
         className={cn(
           "flex items-center",
           !showContent ? "justify-center" : "justify-start",
@@ -24,32 +25,30 @@ export default function AppSidebarHeader({
         {showContent ? (
           <>
             <Image
-              className="dark:hidden"
-              src="/images/logo/logo.svg"
-              alt="Logo"
-              width={150}
-              height={40}
+              className="h-11 w-auto dark:hidden"
+              src="/images/logo/multiserv-logo-horizontal.svg"
+              alt="MultiServ"
+              width={159}
+              height={44}
               priority
-              style={{ width: "auto", height: "auto" }}
             />
             <Image
-              className="hidden dark:block"
-              src="/images/logo/logo-dark.svg"
-              alt="Logo"
-              width={150}
-              height={40}
+              className="hidden h-11 w-auto dark:block"
+              src="/images/logo/multiserv-logo-horizontal-fondo-oscuro.svg"
+              alt="MultiServ"
+              width={159}
+              height={44}
               priority
-              style={{ width: "auto", height: "auto" }}
             />
           </>
         ) : (
           <Image
-            src="/images/logo/logo-icon.svg"
-            alt="Logo"
-            width={32}
-            height={32}
+            className="size-9"
+            src="/images/logo/multiserv-isotipo.svg"
+            alt="MultiServ"
+            width={36}
+            height={36}
             priority
-            style={{ width: "auto", height: "auto" }}
           />
         )}
       </Link>
