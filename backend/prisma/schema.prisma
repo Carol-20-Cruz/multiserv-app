@@ -1,0 +1,350 @@
+// ============================================================
+// MultiServ — Servicios Multimarca (Neiva, Huila)
+// Basado en la SRS v0.1 (ISO/IEC/IEEE 29148)
+// Valores monetarios en COP sin decimales (Int) — SWR-CON-003
+// ============================================================
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------- ENUMS ----------------
+
+enum Rol {
+  DUENO
+  TECNICO
+}
+
+enum TipoDocumento {
+  CC
+  CE
+  NIT
+  PASAPORTE
+}
+
+enum Modalidad {
+  TALLER
+  DOMICILIO
+}
+
+enum EstadoOrden {
+  RECIBIDO
+  EN_DIAGNOSTICO
+  EN_REPARACION
+  LISTO_PARA_ENTREGA
+  ENTREGADO
+}
+
+enum TipoOrden {
+  NORMAL
+  GARANTIA
+}
+
+enum EstadoCotizacion {
+  PENDIENTE
+  APROBADA
+  RECHAZADA
+}
+
+enum TipoPago {
+  ABONO
+  SALDO
+}
+
+enum MedioPago {
+  EFECTIVO
+  TRANSFERENCIA
+}
+
+enum TipoMovimiento {
+  ENTRADA
+  SALIDA
+  AJUSTE
+}
+
+// ---------------- F01: USUARIOS ----------------
+
+model Usuario {
+  id               Int       @id @default(autoincrement())
+  nombre           String
+  correo           String    @unique
+  passwordHash     String
+  rol              Rol       @default(TECNICO)
+  activo           Boolean   @default(true)
+  intentosFallidos Int       @default(0)
+  bloqueadoHasta   DateTime?
+  creadoEn         DateTime  @default(now())
+  actualizadoEn    DateTime  @updatedAt
+
+  ordenesResponsable OrdenServicio[]        @relation("OrdenResponsable")
+  ordenesCreadas     OrdenServicio[]        @relation("OrdenCreadaPor")
+  ordenesEntregadas  OrdenServicio[]        @relation("OrdenEntregadaPor")
+  historialEstados   HistorialEstado[]
+  avances            Avance[]
+  cotizaciones       Cotizacion[]
+  pagos              Pago[]
+  movimientos        MovimientoInventario[]
+  auditorias         Auditoria[]
+}
+
+// ---------------- F02: CONFIGURACIÓN ----------------
+
+model Configuracion {
+  id              Int      @id @default(1)
+  nombreTaller    String   @default("Servicios Multimarca")
+  nit             String?
+  telefono        String?
+  direccion       String?
+  ciudad          String   @default("Neiva")
+  porcentajeAbono Int      @default(50)
+  diasGarantia    Int      @default(90)
+  actualizadoEn   DateTime @updatedAt
+}
+
+model TipoEquipo {
+  id      Int      @id @default(autoincrement())
+  nombre  String   @unique
+  activo  Boolean  @default(true)
+  equipos Equipo[]
+}
+
+// ---------------- F03: CLIENTES Y EQUIPOS ----------------
+
+model Cliente {
+  id                Int            @id @default(autoincrement())
+  tipoDocumento     TipoDocumento?
+  numeroDocumento   String?        @unique
+  nombre            String
+  telefono          String
+  telefonoAlterno   String?
+  correo            String?
+  direccion         String?
+  barrio            String?
+  ciudad            String         @default("Neiva")
+  autorizaDatos     Boolean        @default(false)
+  fechaAutorizacion DateTime?
+  anonimizado       Boolean        @default(false)
+  activo            Boolean        @default(true)
+  creadoEn          DateTime       @default(now())
+  actualizadoEn     DateTime       @updatedAt
+
+  equipos Equipo[]
+  ordenes OrdenServicio[]
+
+  @@index([telefono])
+  @@index([nombre])
+}
+
+model Equipo {
+  id           Int      @id @default(autoincrement())
+  clienteId    Int
+  tipoEquipoId Int
+  marca        String
+  referencia   String?
+  serial       String?
+  descripcion  String?
+  activo       Boolean  @default(true)
+  creadoEn     DateTime @default(now())
+
+  cliente    Cliente         @relation(fields: [clienteId], references: [id])
+  tipoEquipo TipoEquipo      @relation(fields: [tipoEquipoId], references: [id])
+  ordenes    OrdenServicio[]
+
+  @@index([clienteId])
+}
+
+// ---------------- F04: ÓRDENES DE SERVICIO ----------------
+
+model OrdenServicio {
+  id              Int         @id @default(autoincrement())
+  numero          String      @unique
+  clienteId       Int
+  equipoId        Int
+  responsableId   Int
+  creadoPorId     Int
+  modalidad       Modalidad   @default(TALLER)
+  direccionVisita String?
+  fechaVisita     DateTime?
+  fallaReportada  String
+  accesorios      String?
+  estadoEquipo    String?
+  estado          EstadoOrden @default(RECIBIDO)
+  tipo            TipoOrden   @default(NORMAL)
+
+  // Valores congelados al crear la orden (SWR-DATA-003)
+  porcentajeAbono Int
+  diasGarantia    Int
+
+  diagnostico String?
+  sinReparar  Boolean @default(false)
+
+  // Entrega y garantía (F08)
+  fechaEntrega      DateTime?
+  entregadoPorId    Int?
+  recibidoPorNombre String?
+  fechaVencGarantia DateTime?
+
+  // Reclamo de garantía vinculado a la orden original (SWR-GAR-004)
+  ordenOriginalId Int?
+
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  cliente      Cliente  @relation(fields: [clienteId], references: [id])
+  equipo       Equipo   @relation(fields: [equipoId], references: [id])
+  responsable  Usuario  @relation("OrdenResponsable", fields: [responsableId], references: [id])
+  creadoPor    Usuario  @relation("OrdenCreadaPor", fields: [creadoPorId], references: [id])
+  entregadoPor Usuario? @relation("OrdenEntregadaPor", fields: [entregadoPorId], references: [id])
+
+  ordenOriginal    OrdenServicio?  @relation("Garantias", fields: [ordenOriginalId], references: [id])
+  reclamosGarantia OrdenServicio[] @relation("Garantias")
+
+  historialEstados HistorialEstado[]
+  avances          Avance[]
+  cotizacion       Cotizacion?
+  pagos            Pago[]
+  movimientos      MovimientoInventario[]
+
+  @@index([estado])
+  @@index([responsableId])
+  @@index([clienteId])
+}
+
+model HistorialEstado {
+  id             Int          @id @default(autoincrement())
+  ordenId        Int
+  estadoAnterior EstadoOrden?
+  estadoNuevo    EstadoOrden
+  usuarioId      Int
+  comentario     String?
+  fecha          DateTime     @default(now())
+
+  orden   OrdenServicio @relation(fields: [ordenId], references: [id])
+  usuario Usuario       @relation(fields: [usuarioId], references: [id])
+
+  @@index([ordenId])
+}
+
+model Avance {
+  id          Int      @id @default(autoincrement())
+  ordenId     Int
+  usuarioId   Int
+  descripcion String
+  fecha       DateTime @default(now())
+
+  orden   OrdenServicio @relation(fields: [ordenId], references: [id])
+  usuario Usuario       @relation(fields: [usuarioId], references: [id])
+
+  @@index([ordenId])
+}
+
+// ---------------- F05: COTIZACIÓN ----------------
+
+model Cotizacion {
+  id             Int              @id @default(autoincrement())
+  ordenId        Int              @unique
+  manoObra       Int
+  totalRepuestos Int              @default(0)
+  total          Int
+  estado         EstadoCotizacion @default(PENDIENTE)
+  observaciones  String?
+  creadoPorId    Int
+  creadoEn       DateTime         @default(now())
+  respondidaEn   DateTime?
+
+  orden     OrdenServicio    @relation(fields: [ordenId], references: [id])
+  creadoPor Usuario          @relation(fields: [creadoPorId], references: [id])
+  items     CotizacionItem[]
+}
+
+model CotizacionItem {
+  id             Int @id @default(autoincrement())
+  cotizacionId   Int
+  repuestoId     Int
+  cantidad       Int
+  precioUnitario Int
+  subtotal       Int
+
+  cotizacion Cotizacion @relation(fields: [cotizacionId], references: [id])
+  repuesto   Repuesto   @relation(fields: [repuestoId], references: [id])
+}
+
+// ---------------- F06: PAGOS ----------------
+
+model Pago {
+  id         Int       @id @default(autoincrement())
+  ordenId    Int
+  tipo       TipoPago
+  medio      MedioPago
+  valor      Int
+  referencia String?
+  usuarioId  Int
+  fecha      DateTime  @default(now())
+
+  orden   OrdenServicio @relation(fields: [ordenId], references: [id])
+  usuario Usuario       @relation(fields: [usuarioId], references: [id])
+
+  @@index([ordenId])
+  @@index([fecha])
+}
+
+// ---------------- F07: INVENTARIO ----------------
+
+model Repuesto {
+  id              Int      @id @default(autoincrement())
+  nombre          String
+  referencia      String   @unique
+  marcaCompatible String
+  cantidad        Int      @default(0)
+  cantidadMinima  Int      @default(1)
+  precioVenta     Int
+  activo          Boolean  @default(true)
+  creadoEn        DateTime @default(now())
+  actualizadoEn   DateTime @updatedAt
+
+  movimientos     MovimientoInventario[]
+  itemsCotizacion CotizacionItem[]
+}
+
+model MovimientoInventario {
+  id              Int            @id @default(autoincrement())
+  repuestoId      Int
+  tipo            TipoMovimiento
+  cantidad        Int
+  saldoResultante Int
+  ordenId         Int?
+  usuarioId       Int
+  proveedor       String?
+  motivo          String?
+  fecha           DateTime       @default(now())
+
+  repuesto Repuesto       @relation(fields: [repuestoId], references: [id])
+  orden    OrdenServicio? @relation(fields: [ordenId], references: [id])
+  usuario  Usuario        @relation(fields: [usuarioId], references: [id])
+
+  @@index([repuestoId])
+  @@index([fecha])
+}
+
+// ---------------- F11: AUDITORÍA ----------------
+
+model Auditoria {
+  id        Int      @id @default(autoincrement())
+  usuarioId Int?
+  accion    String
+  entidad   String
+  entidadId String?
+  detalle   Json?
+  fecha     DateTime @default(now())
+
+  usuario Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@index([entidad, entidadId])
+  @@index([fecha])
+}

@@ -1,0 +1,30 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno (NUNCA subir valores reales)
+.env
+.env.*
+!.env.example
+
+# Builds y reportes
+dist/
+coverage/
+playwright-report/
+test-results/
+.next/
+
+# Cliente de Prisma generado
+backend/src/generated/
+
+# Datos personales reales (NUNCA subir)
+backend/prisma/data/*.xlsx
+
+# Herramientas de asistentes de IA (no son código del proyecto)
+backend/.agents/
+backend/.claude/
+backend/.windsurf/
+backend/skills-lock.json
+
+# Logs y sistema
+*.log
+.DS_Store
