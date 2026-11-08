@@ -1,0 +1,58 @@
+MultiServ - Evidencia Shift Right (logs del backend)
+Modulo: Autenticacion (feature/auth)
+Fecha de ejecucion: 08/11/2026
+Ambiente: backend NestJS local (puerto 3001) conectado a Supabase
+SWR relacionados: SWR-AUTH-001, SWR-AUTH-003, SWR-AUTH-004, SWR-AUTH-008 (ajustes AJ-02 y AJ-03)
+Nota de privacidad: los logs no contienen contraseñas, hashes ni tokens. Solo userId o el correo enmascarado.
+
+======================================================================
+ESCENARIO 0 - Inicio de la aplicacion
+======================================================================
+{"timestamp":"2026-11-08T18:19:35.225Z","level":"INFO","context":"Bootstrap","event":"APP_STARTED","message":"Servidor iniciado","metadata":{"port":3001}}
+
+======================================================================
+ESCENARIO 1 - Credencial incorrecta (correo que no existe)
+Resultado esperado: HTTP 401 "Credenciales invalidas", WARN controlado
+Resultado obtenido: HTTP 401 - PASS
+======================================================================
+{"timestamp":"2026-11-08T18:19:36.998Z","level":"WARN","context":"AuthService","event":"LOGIN_FAILED","message":"Inicio de sesión fallido","metadata":{"correo":"n***@multiserv.test","motivo":"USUARIO_NO_EXISTE"}}
+
+======================================================================
+ESCENARIO 2 - Login correcto (Dueño y Técnico)
+Resultado esperado: HTTP 200 con token JWT, evento INFO
+Resultado obtenido: HTTP 200 - PASS
+======================================================================
+{"timestamp":"2026-11-08T18:34:28.627Z","level":"INFO","context":"AuthService","event":"LOGIN_SUCCESS","message":"Inicio de sesión exitoso","metadata":{"userId":1}}
+{"timestamp":"2026-11-08T18:34:28.961Z","level":"INFO","context":"AuthService","event":"LOGIN_SUCCESS","message":"Inicio de sesión exitoso","metadata":{"userId":2}}
+
+Autorizacion por rol (SWR-AUTH-008):
+- Tecnico en ruta solo de Dueño: HTTP 403 "No tiene permisos para esta operación" - PASS
+- Dueño en ruta solo de Dueño: HTTP 200 - PASS
+
+======================================================================
+ESCENARIO 3 - Bloqueo por 5 intentos fallidos (SWR-AUTH-004)
+Resultado esperado: intentos 1-4 -> 401; intento 5 -> 423 y evento ACCOUNT_LOCKED
+Resultado obtenido: igual al esperado - PASS
+======================================================================
+{"timestamp":"2026-11-08T18:34:29.581Z","level":"WARN","context":"AuthService","event":"LOGIN_FAILED","message":"Inicio de sesión fallido","metadata":{"userId":2,"motivo":"PASSWORD_INCORRECTA","intentosFallidos":1}}
+{"timestamp":"2026-11-08T18:34:29.868Z","level":"WARN","context":"AuthService","event":"LOGIN_FAILED","message":"Inicio de sesión fallido","metadata":{"userId":2,"motivo":"PASSWORD_INCORRECTA","intentosFallidos":2}}
+{"timestamp":"2026-11-08T18:34:30.248Z","level":"WARN","context":"AuthService","event":"LOGIN_FAILED","message":"Inicio de sesión fallido","metadata":{"userId":2,"motivo":"PASSWORD_INCORRECTA","intentosFallidos":3}}
+{"timestamp":"2026-11-08T18:34:30.537Z","level":"WARN","context":"AuthService","event":"LOGIN_FAILED","message":"Inicio de sesión fallido","metadata":{"userId":2,"motivo":"PASSWORD_INCORRECTA","intentosFallidos":4}}
+{"timestamp":"2026-11-08T18:34:30.869Z","level":"WARN","context":"AuthService","event":"ACCOUNT_LOCKED","message":"Cuenta bloqueada por intentos fallidos","metadata":{"userId":2,"intentosFallidos":5,"bloqueadoHasta":"2026-11-08T18:44:30.542Z"}}
+
+Intento 6 con la contraseña CORRECTA mientras la cuenta esta bloqueada:
+Resultado: HTTP 423 "Cuenta bloqueada temporalmente. Intente más tarde." - PASS
+{"timestamp":"2026-11-08T18:34:30.962Z","level":"WARN","context":"AuthService","event":"LOGIN_FAILED","message":"Intento sobre cuenta bloqueada","metadata":{"userId":2,"motivo":"CUENTA_BLOQUEADA"}}
+
+Limpieza: se desbloqueo la cuenta del Tecnico y su login volvio a responder HTTP 200.
+{"timestamp":"2026-11-08T18:34:31.476Z","level":"INFO","context":"AuthService","event":"LOGIN_SUCCESS","message":"Inicio de sesión exitoso","metadata":{"userId":2}}
+
+======================================================================
+QUE APRENDIMOS DE ESTOS LOGS
+======================================================================
+1. Cada intento fallido queda registrado con su motivo y el numero de intentos, sin exponer la contraseña.
+   Esto permite detectar intentos de adivinar contraseñas.
+2. El evento ACCOUNT_LOCKED deja la hora exacta de desbloqueo (bloqueadoHasta = 10 minutos despues).
+3. Cuando el correo no existe, el log solo guarda el correo enmascarado (n***@...), cumpliendo la privacidad de los logs.
+4. Riesgo identificado: la respuesta 423 revela que una cuenta existe despues de 5 intentos.
+   Se acepto como decision de diseño para que el usuario sepa por que no puede entrar (ver ISO 25010 - Seguridad).
