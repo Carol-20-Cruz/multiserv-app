@@ -28,3 +28,6 @@ backend/skills-lock.json
 # Logs y sistema
 *.log
 .DS_Store
+
+# Archivos temporales de Office
+~$*
