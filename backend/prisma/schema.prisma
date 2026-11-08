@@ -121,7 +121,7 @@ model Cliente {
   tipoDocumento     TipoDocumento?
   numeroDocumento   String?        @unique
   nombre            String
-  telefono          String
+  telefono          String         @unique // AJ-04: un teléfono por cliente
   telefonoAlterno   String?
   correo            String?
   direccion         String?
@@ -137,7 +137,6 @@ model Cliente {
   equipos Equipo[]
   ordenes OrdenServicio[]
 
-  @@index([telefono])
   @@index([nombre])
 }
 
