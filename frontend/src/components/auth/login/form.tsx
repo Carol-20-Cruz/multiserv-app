@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -11,12 +12,16 @@ import {
 } from "@/components/ui/input-group";
 import { EyeCloseIcon, EyeIcon } from "@/icons";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { loginSchema, type LoginFormData } from "./schema";
 
 export default function LoginForm() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  // Mensaje del servidor: credenciales inválidas (401), cuenta bloqueada (423)...
+  const [errorServidor, setErrorServidor] = useState<string | null>(null);
 
   const {
     register,
@@ -31,8 +36,27 @@ export default function LoginForm() {
     mode: "onTouched",
   });
 
-  const handleFormSubmit = async (_data: LoginFormData) => {
-    // Se conecta al backend en el siguiente paso.
+  const handleFormSubmit = async (data: LoginFormData) => {
+    setErrorServidor(null);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const cuerpo = (await res.json().catch(() => ({}))) as {
+          message?: string;
+        };
+        setErrorServidor(cuerpo.message ?? "No se pudo iniciar sesión");
+        return;
+      }
+      // La cookie httpOnly ya quedó guardada: entrar al dashboard.
+      router.replace("/");
+      router.refresh();
+    } catch {
+      setErrorServidor("No se pudo conectar con el servidor");
+    }
   };
 
   return (
@@ -41,6 +65,14 @@ export default function LoginForm() {
       className="space-y-5"
       noValidate
     >
+      {errorServidor && (
+        <Alert variant="destructive">
+          <AlertDescription className="text-red-700 dark:text-red-300">
+            {errorServidor}
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Field data-invalid={Boolean(errors.correo)} controlId="correo">
         <FieldLabel className="mb-1.5 block">
           Correo electrónico <span className="text-red-500">*</span>
