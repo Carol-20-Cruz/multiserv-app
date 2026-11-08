@@ -1,3 +1,4 @@
+import type { Rol } from "@/lib/tipos-sesion";
 import React from "react";
 
 export interface SubItem {
@@ -12,4 +13,6 @@ export interface NavItem {
   path?: string;
   target?: string;
   subItems?: SubItem[];
+  // Si se indica, el menú solo se muestra a estos roles (SWR-AUTH-008).
+  roles?: Rol[];
 }

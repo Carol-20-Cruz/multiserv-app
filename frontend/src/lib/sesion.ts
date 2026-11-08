@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { llamarBackend } from "./backend";
 import { COOKIE_SESION, type Usuario } from "./tipos-sesion";
 
@@ -38,7 +39,8 @@ export function segundosRestantes(token: string): number {
 
 // Usuario de la sesión actual según el backend (GET /auth/perfil).
 // Devuelve null si no hay cookie o si el backend rechaza el token (401).
-export async function obtenerUsuarioActual(): Promise<Usuario | null> {
+// cache(): si el layout y la página lo piden en la misma petición, se consulta una vez.
+export const obtenerUsuarioActual = cache(async (): Promise<Usuario | null> => {
   const token = (await cookies()).get(COOKIE_SESION)?.value;
   if (!token) return null;
 
@@ -50,4 +52,4 @@ export async function obtenerUsuarioActual(): Promise<Usuario | null> {
     throw new Error(`El backend respondió ${res.status} al consultar el perfil`);
   }
   return (await res.json()) as Usuario;
-}
+});

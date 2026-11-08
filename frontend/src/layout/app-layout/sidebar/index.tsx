@@ -1,9 +1,10 @@
 "use client";
 
 import { Sidebar, SidebarContent, useSidebar } from "@/components/ui/sidebar";
+import { useUsuario } from "@/context/sesion-context";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { navItems } from "./data";
+import { menusParaRol, navItems } from "./data";
 import AppSidebarHeader from "./sidebar-header";
 import { esRutaActiva } from "./sidebar-menu-item";
 import SidebarNavGroup from "./sidebar-nav-group";
@@ -18,7 +19,8 @@ const findMatchingSubmenu = (items: typeof navItems, path: string) => {
 export default function AppSidebar() {
   const { open, isMobile, isHovered } = useSidebar();
   const pathname = usePathname();
-  const items = navItems;
+  const { rol } = useUsuario();
+  const items = menusParaRol(rol);
 
   const showContent = open || isHovered || isMobile;
 
