@@ -6,10 +6,9 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { SidebarMenuItem as UiSidebarMenuItem } from "@/components/ui/sidebar";
-import { Link } from "@/i18n/navigation";
 import { ChevronDownIcon } from "@/icons";
 import { cn } from "@/utils";
-import { useTranslations } from "next-intl";
+import Link from "next/link";
 import SidebarSubmenuItem from "./sidebar-submenu-item";
 import { NavItem } from "./types";
 
@@ -21,6 +20,10 @@ interface SidebarMenuItemProps {
   onToggle: () => void;
 }
 
+// Una ruta está activa si coincide exacto o si es una subruta (/clientes/123).
+export const esRutaActiva = (path: string, pathname: string) =>
+  path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(`${path}/`);
+
 export default function SidebarMenuItem({
   nav,
   isOpen,
@@ -28,17 +31,11 @@ export default function SidebarMenuItem({
   pathname,
   onToggle,
 }: SidebarMenuItemProps) {
-  const t = useTranslations("sidebar");
-
   const hasSubItems = Boolean(nav.subItems?.length);
   const hasActiveChild = Boolean(
-    nav.subItems?.some(
-      (subItem) =>
-        subItem.path === pathname ||
-        (subItem.path === "/ai-settings" && pathname.startsWith("/ai-settings")),
-    ),
+    nav.subItems?.some((subItem) => esRutaActiva(subItem.path, pathname)),
   );
-  const isDirectActive = Boolean(nav.path && nav.path === pathname);
+  const isDirectActive = Boolean(nav.path && esRutaActiva(nav.path, pathname));
   const isItemActive = hasSubItems ? isOpen || hasActiveChild : isDirectActive;
   const isPanelOpen = showContent && isOpen;
 
@@ -62,21 +59,7 @@ export default function SidebarMenuItem({
             >
               {nav.icon}
             </span>
-            {showContent && (
-              <span className="menu-item-text">{t(`items.${nav.key}`)}</span>
-            )}
-            {nav.new && showContent && (
-              <span
-                className={cn(
-                  "menu-dropdown-badge absolute inset-e-10 ms-auto",
-                  isItemActive
-                    ? "menu-dropdown-badge-active"
-                    : "menu-dropdown-badge-inactive",
-                )}
-              >
-                {t("badges.new")}
-              </span>
-            )}
+            {showContent && <span className="menu-item-text">{nav.label}</span>}
             {showContent && (
               <ChevronDownIcon
                 className={cn(
@@ -90,13 +73,9 @@ export default function SidebarMenuItem({
             <ul className="ms-9 mt-2 space-y-1">
               {nav.subItems?.map((subItem) => (
                 <SidebarSubmenuItem
-                  key={subItem.key}
+                  key={subItem.path}
                   subItem={subItem}
-                  isActive={
-                    subItem.path === pathname ||
-                    (subItem.path === "/ai-settings" &&
-                      pathname.startsWith("/ai-settings"))
-                  }
+                  isActive={esRutaActiva(subItem.path, pathname)}
                 />
               ))}
             </ul>
@@ -107,6 +86,7 @@ export default function SidebarMenuItem({
           <Link
             href={nav.path}
             target={nav.target}
+            aria-current={isItemActive ? "page" : undefined}
             className={cn(
               "group menu-item",
               isItemActive ? "menu-item-active" : "menu-item-inactive",
@@ -122,8 +102,10 @@ export default function SidebarMenuItem({
             >
               {nav.icon}
             </span>
-            {showContent && (
-              <span className="menu-item-text">{t(`items.${nav.key}`)}</span>
+            {showContent ? (
+              <span className="menu-item-text">{nav.label}</span>
+            ) : (
+              <span className="sr-only">{nav.label}</span>
             )}
           </Link>
         )

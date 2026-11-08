@@ -12,7 +12,7 @@ export default function ThemeToggleButton() {
       variant="outline"
       size="icon-lg"
       className="relative"
-      aria-label="Toggle notifications"
+      aria-label={theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"}
       onClick={toggleTheme}
     >
       {theme === "dark" ? <SunIcon /> : <MoonIcon />}

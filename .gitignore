@@ -31,3 +31,10 @@ backend/skills-lock.json
 
 # Archivos temporales de Office
 ~$*
+
+# Next.js (frontend)
+frontend/out/
+frontend/next-env.d.ts
+*.tsbuildinfo
+.vercel/
+*.pem

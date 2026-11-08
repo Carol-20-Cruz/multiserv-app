@@ -7,31 +7,26 @@ import {
 } from "@/components/ui/sidebar";
 import { HorizontalDotsIcon } from "@/icons";
 import { cn } from "@/utils";
-import { useTranslations } from "next-intl";
 import SidebarMenuItem from "./sidebar-menu-item";
-import { MenuType, NavItem } from "./types";
+import { NavItem } from "./types";
 
 interface SidebarNavGroupProps {
-  labelKey: string;
-  menuType: MenuType;
+  label: string;
   items: NavItem[];
-  openSubmenu: { type: MenuType; index: number } | null;
+  openSubmenu: number | null;
   showContent: boolean;
   pathname: string;
-  onToggleSubmenu: (index: number, menuType: MenuType) => void;
+  onToggleSubmenu: (index: number) => void;
 }
 
 export default function SidebarNavGroup({
-  labelKey,
-  menuType,
+  label,
   items,
   openSubmenu,
   showContent,
   pathname,
   onToggleSubmenu,
 }: SidebarNavGroupProps) {
-  const t = useTranslations("sidebar");
-
   return (
     <SidebarGroup className="p-0">
       <SidebarGroupLabel
@@ -40,19 +35,17 @@ export default function SidebarNavGroup({
           !showContent ? "xl:justify-center" : "justify-start",
         )}
       >
-        {showContent ? t(labelKey) : <HorizontalDotsIcon />}
+        {showContent ? label : <HorizontalDotsIcon />}
       </SidebarGroupLabel>
       <SidebarMenu className="gap-1">
         {items.map((nav, index) => (
           <SidebarMenuItem
-            key={nav.key}
+            key={nav.label}
             nav={nav}
-            isOpen={
-              openSubmenu?.type === menuType && openSubmenu?.index === index
-            }
+            isOpen={openSubmenu === index}
             showContent={showContent}
             pathname={pathname}
-            onToggle={() => onToggleSubmenu(index, menuType)}
+            onToggle={() => onToggleSubmenu(index)}
           />
         ))}
       </SidebarMenu>

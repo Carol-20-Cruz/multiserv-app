@@ -1,7 +1,7 @@
 "use client";
 
 import { SidebarHeader } from "@/components/ui/sidebar";
-import { Link } from "@/i18n/navigation";
+import Link from "next/link";
 import { cn } from "@/utils";
 import Image from "next/image";
 

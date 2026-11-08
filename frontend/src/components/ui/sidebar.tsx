@@ -17,7 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { usePathname } from "@/i18n/navigation";
+import { usePathname } from "next/navigation";
 import { MenuTwoIcon } from "@/icons";
 import { cn } from "@/utils";
 import { mergeProps } from "@base-ui/react/merge-props";

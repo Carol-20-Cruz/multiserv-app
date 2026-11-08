@@ -1,4 +1,4 @@
-import { Link } from "@/i18n/navigation";
+import Link from "next/link";
 import { ChevronRightIcon, HorizontalDotsIcon } from "@/icons";
 import { cn } from "@/utils";
 import * as React from "react";
