@@ -1,25 +1,19 @@
-"use client";
+import DashboardShell from "@/layout/app-layout/dashboard-shell";
+import { obtenerUsuarioActual } from "@/lib/sesion";
+import { redirect } from "next/navigation";
 
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import AppHeader from "@/layout/app-layout/header";
-import AppSidebar from "@/layout/app-layout/sidebar";
-
-export default function DashboardLayout({
+// Portero de adentro: antes de mostrar cualquier página del dashboard le
+// pregunta al backend quién es el usuario del token. Si el token venció o
+// es inválido, borra la cookie y lleva al login.
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <SidebarProvider>
-      <AppSidebar />
+  const usuario = await obtenerUsuarioActual();
+  if (!usuario) {
+    redirect("/api/auth/expirada");
+  }
 
-      <SidebarInset>
-        <AppHeader />
-
-        <div className="mx-auto w-full max-w-(--breakpoint-2xl) p-4 md:p-6">
-          {children}
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
-  );
+  return <DashboardShell usuario={usuario}>{children}</DashboardShell>;
 }
