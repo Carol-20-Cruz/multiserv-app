@@ -6,6 +6,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { ErrorValidacion } from './error-validacion';
 import { JsonLogger } from './json-logger';
 
 // Atrapa cualquier error. Los errores esperados (400, 401, 403, 423...) se
@@ -19,6 +20,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const http = host.switchToHttp();
     const res = http.getResponse<Response>();
     const req = http.getRequest<Request>();
+
+    if (exception instanceof ErrorValidacion) {
+      this.logger.event('WARN', 'VALIDATION_FAILED', 'Datos inválidos', {
+        method: req.method,
+        path: req.path,
+        campos: exception.campos,
+      });
+    }
 
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
