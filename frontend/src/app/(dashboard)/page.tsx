@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function InicioPage() {
   return (
     <div>
-      <PageBreadcrumb pageTitle="Inicio" />
+      <PageBreadcrumb pageTitle="Inicio" mostrarRuta={false} />
       <InicioContenido />
     </div>
   );
