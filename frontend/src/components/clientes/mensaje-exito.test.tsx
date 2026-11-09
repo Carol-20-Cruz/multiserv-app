@@ -41,6 +41,47 @@ describe("Mensaje de éxito del detalle del cliente", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
+  // Defecto reportado en inventario: tras registrar el repuesto y luego una
+  // entrada en la MISMA página, seguía saliendo "Repuesto registrado
+  // correctamente.". Debe salir solo el aviso de la última acción.
+  it("acción nueva en la misma página: reemplaza el aviso anterior", () => {
+    // Arrange: se registró el repuesto y la URL ya quedó limpia.
+    const { rerender } = render(
+      <MensajeExito mensaje="Repuesto registrado correctamente." visible />,
+    );
+    rerender(<MensajeExito mensaje={null} visible />);
+
+    // Act: se registra una entrada (?entrada=1) y luego se limpia la URL.
+    rerender(
+      <MensajeExito mensaje="Entrada registrada correctamente." visible />,
+    );
+    rerender(<MensajeExito mensaje={null} visible />);
+
+    // Assert
+    const aviso = screen.getByRole("status");
+    expect(aviso).toHaveTextContent("Entrada registrada correctamente.");
+    expect(aviso).not.toHaveTextContent("Repuesto registrado");
+    expect(router.replace).toHaveBeenCalledTimes(2);
+  });
+
+  // Mismo defecto en clientes: al agregar un equipo (?equipo=1 -> "") se
+  // borra "Cliente registrado correctamente."; el formulario muestra el suyo.
+  it("mensaje vacío (equipo agregado): borra el aviso anterior", () => {
+    // Arrange
+    const { rerender } = render(
+      <MensajeExito mensaje="Cliente registrado correctamente." visible />,
+    );
+    rerender(<MensajeExito mensaje={null} visible />);
+
+    // Act
+    rerender(<MensajeExito mensaje="" visible />);
+    rerender(<MensajeExito mensaje={null} visible />);
+
+    // Assert
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(router.replace).toHaveBeenCalledTimes(2);
+  });
+
   // SWR-DATA-005: al abrir el detalle de un cliente desactivado con el
   // parámetro en la URL, no se felicita por el registro.
   it("cliente desactivado: no muestra el mensaje de éxito", () => {

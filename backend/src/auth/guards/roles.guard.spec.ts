@@ -25,6 +25,12 @@ class RutasDePruebaController {
   clientes() {
     return { ok: true };
   }
+
+  @Get('repuestos/:id')
+  @Roles(...PERMISOS.repuestos)
+  repuestos() {
+    return { ok: true };
+  }
 }
 
 describe('RolesGuard dentro de NestJS', () => {
@@ -48,6 +54,8 @@ describe('RolesGuard dentro de NestJS', () => {
     jwt = moduleRef.get(JwtService);
   });
 
+  afterEach(() => jest.restoreAllMocks());
+
   afterAll(async () => {
     await app.close();
   });
@@ -56,6 +64,7 @@ describe('RolesGuard dentro de NestJS', () => {
   it('Técnico en ruta solo Dueño: responde 403', async () => {
     // Arrange
     const token = tokenDe(Rol.TECNICO);
+    jest.spyOn(process.stdout, 'write').mockImplementationOnce(() => true); // ACCESS_DENIED
 
     // Act
     const res = await request(app.getHttpServer())
@@ -89,6 +98,55 @@ describe('RolesGuard dentro de NestJS', () => {
     // Act
     const res = await request(app.getHttpServer())
       .get('/prueba/clientes')
+      .set('Authorization', `Bearer ${token}`);
+
+    // Assert
+    expect(res.status).toBe(200);
+  });
+
+  // AJ-03: inventario es solo del Dueño. El Técnico recibe 403 y queda
+  // ACCESS_DENIED con el patrón de la ruta, sin la URL real ni su búsqueda.
+  it('Técnico en repuestos: 403 y log ACCESS_DENIED sin datos de la petición', async () => {
+    // Arrange
+    const token = tokenDe(Rol.TECNICO);
+    const salida = jest
+      .spyOn(process.stdout, 'write')
+      .mockImplementation(() => true);
+
+    // Act
+    const res = await request(app.getHttpServer())
+      .get('/prueba/repuestos/15?buscar=tarjeta')
+      .set('Authorization', `Bearer ${token}`);
+
+    // Assert
+    const logs = salida.mock.calls.map(
+      ([linea]) => JSON.parse(String(linea)) as Record<string, unknown>,
+    );
+    salida.mockRestore();
+    expect(res.status).toBe(403);
+    expect(logs).toEqual([
+      expect.objectContaining({
+        level: 'WARN',
+        event: 'ACCESS_DENIED',
+        metadata: {
+          userId: 1,
+          rol: 'TECNICO',
+          method: 'GET',
+          ruta: '/prueba/repuestos/:id',
+        },
+      }),
+    ]);
+    expect(JSON.stringify(logs)).not.toContain('tarjeta');
+  });
+
+  // AJ-03: el Dueño sí entra a repuestos.
+  it('Dueño en repuestos: responde 200', async () => {
+    // Arrange
+    const token = tokenDe(Rol.DUENO);
+
+    // Act
+    const res = await request(app.getHttpServer())
+      .get('/prueba/repuestos/15')
       .set('Authorization', `Bearer ${token}`);
 
     // Assert

@@ -5,10 +5,19 @@ import { useUsuario } from "@/context/sesion-context";
 import { menusParaRol } from "@/layout/app-layout/sidebar/data";
 import { NOMBRE_ROL } from "@/lib/tipos-sesion";
 import Link from "next/link";
+import TarjetaStockBajo from "@/components/inventario/tarjeta-stock-bajo";
+
+interface InicioContenidoProps {
+  // Repuestos en existencia baja; solo llega para el Dueño (SWR-INV-009).
+  stockBajo?: number;
+}
+
+// Módulos que aún no existen: su tarjeta lleva "Próximamente".
+const EN_CONSTRUCCION = new Set(["/ordenes"]);
 
 // Contenido de la página de inicio: saludo y accesos a los módulos
 // (tarjetas con el estilo de las metric cards de la plantilla).
-export default function InicioContenido() {
+export default function InicioContenido({ stockBajo }: InicioContenidoProps) {
   const usuario = useUsuario();
   const modulos = menusParaRol(usuario.rol).filter((item) => item.path !== "/");
 
@@ -30,6 +39,10 @@ export default function InicioContenido() {
         </p>
       </div>
 
+      {usuario.rol === "DUENO" && stockBajo !== undefined && (
+        <TarjetaStockBajo total={stockBajo} />
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 xl:grid-cols-3">
         {modulos.map((modulo) => (
           <Link
@@ -44,9 +57,11 @@ export default function InicioContenido() {
               <h4 className="text-title-sm font-semibold text-gray-800 dark:text-white/90">
                 {modulo.label}
               </h4>
-              <Badge variant="light" color="warning" size="sm">
-                Próximamente
-              </Badge>
+              {EN_CONSTRUCCION.has(modulo.path ?? "") && (
+                <Badge variant="light" color="warning" size="sm">
+                  Próximamente
+                </Badge>
+              )}
             </div>
           </Link>
         ))}

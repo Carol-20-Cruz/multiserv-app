@@ -108,10 +108,11 @@ model Configuracion {
 }
 
 model TipoEquipo {
-  id      Int      @id @default(autoincrement())
-  nombre  String   @unique
-  activo  Boolean  @default(true)
-  equipos Equipo[]
+  id        Int        @id @default(autoincrement())
+  nombre    String     @unique
+  activo    Boolean    @default(true)
+  equipos   Equipo[]
+  repuestos Repuesto[] // AJ-05
 }
 
 // ---------------- F03: CLIENTES Y EQUIPOS ----------------
@@ -300,6 +301,7 @@ model Repuesto {
   nombre          String
   referencia      String   @unique
   marcaCompatible String
+  tipoEquipoId    Int // AJ-05: un solo tipo de equipo, obligatorio
   cantidad        Int      @default(0)
   cantidadMinima  Int      @default(1)
   precioVenta     Int
@@ -307,8 +309,12 @@ model Repuesto {
   creadoEn        DateTime @default(now())
   actualizadoEn   DateTime @updatedAt
 
+  tipoEquipo      TipoEquipo             @relation(fields: [tipoEquipoId], references: [id])
   movimientos     MovimientoInventario[]
   itemsCotizacion CotizacionItem[]
+
+  @@index([tipoEquipoId])
+  @@index([nombre])
 }
 
 model MovimientoInventario {

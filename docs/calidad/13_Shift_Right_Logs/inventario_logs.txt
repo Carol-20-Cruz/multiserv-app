@@ -1,0 +1,76 @@
+MultiServ - Evidencia Shift Right (logs del backend)
+Modulo: Inventario de repuestos (feature/inventario)
+Fecha de ejecucion: 09/11/2026
+Ambiente: backend NestJS local (puerto 3001, build de produccion) conectado a Supabase;
+          frontend Next.js local (puerto 3000, next start). Prueba hecha desde la pantalla
+          con Chrome sin cabeza (clics y tecleo reales).
+SWR relacionados: SWR-INV-001, SWR-INV-009, SWR-AUTH-008 (ajustes AJ-03 y AJ-05)
+Nota de privacidad: las lineas de log (JSON) no contienen contrasenas, hashes, tokens, correos ni nombres.
+Solo ids, rol, cantidades y el patron de la ruta. Se verifico buscando en el archivo
+tokens JWT, hashes bcrypt, las contrasenas del seed, el secreto JWT y los correos: 0 coincidencias.
+Se omiten las lineas internas de arranque de NestJS (NEST_LOG).
+
+Datos de ejemplo creados (quedan activos):
+  repuestoId 1  Tarjeta electronica principal  HCB-TE-460    Nevera              Haceb      inicial 1, min 2  -> stock bajo
+  repuestoId 2  Compresor 1/4 HP               BMA069NAMV    Nevera              LG         inicial 2, min 1  -> +3 entrada = 5
+  repuestoId 3  Bomba de desague               W10276397     Lavadora            Whirlpool  inicial 0, min 2  -> agotado
+  repuestoId 4  Termostato de refrigeracion    MAB-TER-2224  Nevera              Mabe       inicial 6, min 2
+  repuestoId 5  Tarjeta de control inverter    DB92-03443A   Aire acondicionado  Samsung    inicial 3, min 1
+Usuarios: userId 1 = Dueno de prueba, userId 2 = Tecnico de prueba.
+
+======================================================================
+ESCENARIO 0 - Inicio de la aplicacion
+Resultado esperado: evento INFO APP_STARTED
+Resultado obtenido: PASS
+======================================================================
+{"timestamp":"2026-11-09T20:17:17.865Z","level":"INFO","context":"Bootstrap","event":"APP_STARTED","message":"Servidor iniciado","metadata":{"port":3001}}
+
+======================================================================
+ESCENARIO 1 - Login del Dueno
+Resultado esperado: HTTP 200 y LOGIN_SUCCESS solo con userId
+Resultado obtenido: PASS
+======================================================================
+{"timestamp":"2026-11-09T20:18:47.970Z","level":"INFO","context":"AuthService","event":"LOGIN_SUCCESS","message":"Inicio de sesión exitoso","metadata":{"userId":1}}
+
+======================================================================
+ESCENARIO 2 - Registrar 5 repuestos desde /inventario/nuevo (SWR-INV-001, AJ-05)
+Resultado esperado: PART_CREATED por repuesto; STOCK_ENTRY 'Stock inicial' si la cantidad inicial es > 0; STOCK_LOW (WARN) solo para los que nacen con cantidad <= minimo
+Resultado obtenido: 5 PART_CREATED, 4 STOCK_ENTRY (la bomba inicia en 0 y no genera movimiento), 2 STOCK_LOW origen CREACION (repuestos 1 y 3) - PASS
+======================================================================
+{"timestamp":"2026-11-09T20:18:56.157Z","level":"INFO","context":"InventarioService","event":"PART_CREATED","message":"Repuesto registrado","metadata":{"repuestoId":1,"tipoEquipoId":5,"userId":1}}
+{"timestamp":"2026-11-09T20:18:56.158Z","level":"INFO","context":"InventarioService","event":"STOCK_ENTRY","message":"Entrada de inventario","metadata":{"repuestoId":1,"movimientoId":1,"cantidad":1,"saldoResultante":1,"userId":1}}
+{"timestamp":"2026-11-09T20:18:56.158Z","level":"WARN","context":"InventarioService","event":"STOCK_LOW","message":"Repuesto en existencia baja","metadata":{"repuestoId":1,"cantidad":1,"cantidadMinima":2,"origen":"CREACION","userId":1}}
+{"timestamp":"2026-11-09T20:19:02.217Z","level":"INFO","context":"InventarioService","event":"PART_CREATED","message":"Repuesto registrado","metadata":{"repuestoId":2,"tipoEquipoId":5,"userId":1}}
+{"timestamp":"2026-11-09T20:19:02.217Z","level":"INFO","context":"InventarioService","event":"STOCK_ENTRY","message":"Entrada de inventario","metadata":{"repuestoId":2,"movimientoId":2,"cantidad":2,"saldoResultante":2,"userId":1}}
+{"timestamp":"2026-11-09T20:19:07.413Z","level":"INFO","context":"InventarioService","event":"PART_CREATED","message":"Repuesto registrado","metadata":{"repuestoId":3,"tipoEquipoId":3,"userId":1}}
+{"timestamp":"2026-11-09T20:19:07.413Z","level":"WARN","context":"InventarioService","event":"STOCK_LOW","message":"Repuesto en existencia baja","metadata":{"repuestoId":3,"cantidad":0,"cantidadMinima":2,"origen":"CREACION","userId":1}}
+{"timestamp":"2026-11-09T20:19:12.695Z","level":"INFO","context":"InventarioService","event":"PART_CREATED","message":"Repuesto registrado","metadata":{"repuestoId":4,"tipoEquipoId":5,"userId":1}}
+{"timestamp":"2026-11-09T20:19:12.695Z","level":"INFO","context":"InventarioService","event":"STOCK_ENTRY","message":"Entrada de inventario","metadata":{"repuestoId":4,"movimientoId":3,"cantidad":6,"saldoResultante":6,"userId":1}}
+{"timestamp":"2026-11-09T20:19:18.074Z","level":"INFO","context":"InventarioService","event":"PART_CREATED","message":"Repuesto registrado","metadata":{"repuestoId":5,"tipoEquipoId":6,"userId":1}}
+{"timestamp":"2026-11-09T20:19:18.074Z","level":"INFO","context":"InventarioService","event":"STOCK_ENTRY","message":"Entrada de inventario","metadata":{"repuestoId":5,"movimientoId":4,"cantidad":3,"saldoResultante":3,"userId":1}}
+
+======================================================================
+ESCENARIO 3 - Registrar entrada de 3 unidades en el compresor (dialogo del detalle)
+Resultado esperado: STOCK_ENTRY con saldoResultante 5; sin STOCK_LOW (una entrada solo suma)
+Resultado obtenido: STOCK_ENTRY movimientoId 5, saldo 5 - PASS. La lista muestra el aviso '2 repuestos con existencia baja' y la tarjeta del Inicio el mismo numero.
+======================================================================
+{"timestamp":"2026-11-09T20:19:22.597Z","level":"INFO","context":"InventarioService","event":"STOCK_ENTRY","message":"Entrada de inventario","metadata":{"repuestoId":2,"movimientoId":5,"cantidad":3,"saldoResultante":5,"userId":1}}
+
+======================================================================
+ESCENARIO 4 - Tecnico intenta usar inventario (AJ-03)
+Resultado esperado: abrir /inventario por URL redirige al inicio; GET /api/repuestos y /api/repuestos/2 -> 403; ACCESS_DENIED (WARN) con userId, rol y patron de ruta
+Resultado obtenido: /inventario redirigio a '/' (la pagina no llega a pedir datos al backend, por eso no hay ACCESS_DENIED de ese paso); ambas llamadas a la API respondieron 403 'No tiene permisos para esta operacion'; la tarjeta de stock bajo no aparece en su Inicio - PASS
+======================================================================
+{"timestamp":"2026-11-09T20:19:30.320Z","level":"INFO","context":"AuthService","event":"LOGIN_SUCCESS","message":"Inicio de sesión exitoso","metadata":{"userId":2}}
+{"timestamp":"2026-11-09T20:19:32.166Z","level":"WARN","context":"RolesGuard","event":"ACCESS_DENIED","message":"Rol sin permiso","metadata":{"userId":2,"rol":"TECNICO","method":"GET","ruta":"/repuestos"}}
+{"timestamp":"2026-11-09T20:19:32.186Z","level":"WARN","context":"RolesGuard","event":"ACCESS_DENIED","message":"Rol sin permiso","metadata":{"userId":2,"rol":"TECNICO","method":"GET","ruta":"/repuestos/:id"}}
+
+======================================================================
+ESCENARIO 5 - Nueva captura y medicion de la lista mientras se corregia el ancho de los filtros
+Resultado esperado: solo inicios de sesion del Dueno, sin cambios en el inventario
+Resultado obtenido: 4 LOGIN_SUCCESS (userId 1) - PASS
+======================================================================
+{"timestamp":"2026-11-09T20:20:53.207Z","level":"INFO","context":"AuthService","event":"LOGIN_SUCCESS","message":"Inicio de sesión exitoso","metadata":{"userId":1}}
+{"timestamp":"2026-11-09T20:21:13.805Z","level":"INFO","context":"AuthService","event":"LOGIN_SUCCESS","message":"Inicio de sesión exitoso","metadata":{"userId":1}}
+{"timestamp":"2026-11-09T20:21:55.227Z","level":"INFO","context":"AuthService","event":"LOGIN_SUCCESS","message":"Inicio de sesión exitoso","metadata":{"userId":1}}
+{"timestamp":"2026-11-09T20:22:00.944Z","level":"INFO","context":"AuthService","event":"LOGIN_SUCCESS","message":"Inicio de sesión exitoso","metadata":{"userId":1}}
