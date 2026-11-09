@@ -1,6 +1,7 @@
 import AgregarEquipoForm from "@/components/clientes/agregar-equipo-form";
 import DesactivarCliente from "@/components/clientes/desactivar-cliente";
 import DetalleCliente from "@/components/clientes/detalle-cliente";
+import MensajeExito from "@/components/clientes/mensaje-exito";
 import TablaEquipos from "@/components/clientes/tabla-equipos";
 import ComponentCard from "@/components/common/component-card";
 import PageBreadcrumb from "@/components/common/page-breadcrumb";
@@ -47,13 +48,9 @@ export default async function DetalleClientePage({
       <PageBreadcrumb pageTitle="Detalle del cliente" />
 
       <div className="space-y-6">
-        {mensaje && (
-          <Alert variant="success" role="status">
-            <AlertDescription className="text-green-700 dark:text-green-300">
-              {mensaje}
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* Siempre en el mismo lugar (aunque mensaje sea null) para que
+            conserve su estado cuando la URL se limpia. */}
+        <MensajeExito mensaje={mensaje} visible={cliente.activo} />
         {!cliente.activo && (
           <Alert variant="info" role="status">
             <AlertDescription className="text-gray-700 dark:text-gray-300">
