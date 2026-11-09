@@ -73,7 +73,7 @@ function SheetContent({
                 size="icon-sm"
               >
                 <XIcon />
-                <span className="sr-only">Close</span>
+                <span className="sr-only">Cerrar</span>
               </Button>
             }
           />
@@ -113,7 +113,7 @@ function SheetFooter({
       {children}
       {showCloseButton && (
         <SheetPrimitive.Close
-          render={<Button variant="outline">Close</Button>}
+          render={<Button variant="outline">Cerrar</Button>}
         />
       )}
     </div>
