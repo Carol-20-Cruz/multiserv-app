@@ -11,10 +11,12 @@ import { JsonLogger } from '../logging/json-logger';
 import { PrismaService } from '../prisma/prisma.service';
 import { ActualizarOrdenDto } from './dto/actualizar-orden.dto';
 import { BuscarOrdenesDto } from './dto/buscar-ordenes.dto';
+import { CambiarEstadoDto } from './dto/cambiar-estado.dto';
 import {
   CrearOrdenDto,
   MENSAJE_DIRECCION_DOMICILIO,
 } from './dto/crear-orden.dto';
+import { RegistrarCotizacionDto } from './dto/registrar-cotizacion.dto';
 import { abonoMinimo } from './reglas/abono';
 import { evaluarCotizacion } from './reglas/cotizacion';
 import {
@@ -22,6 +24,34 @@ import {
   siguientePorCambioDeEstado,
 } from './reglas/estados';
 import { anioColombia, formatearNumeroOrden } from './reglas/numero-orden';
+
+// Error de Prisma por registro inexistente en un update.
+const esNoEncontrado = (error: unknown): boolean =>
+  typeof error === 'object' &&
+  error !== null &&
+  (error as { code?: unknown }).code === 'P2025';
+
+// Una regla de negocio dijo "no" DENTRO de una transacción. Lanzarlo la
+// deshace (y suelta el candado); afuera se registra el log WARN y se
+// responde 409 con el mensaje y el motivo (la pantalla puede usar ambos).
+export class RechazoNegocio extends Error {
+  constructor(
+    readonly motivo: string,
+    mensaje: string,
+    readonly datos: Record<string, unknown>,
+  ) {
+    super(mensaje);
+  }
+
+  comoConflicto() {
+    return new ConflictException({
+      statusCode: 409,
+      message: this.message,
+      motivo: this.motivo,
+      error: 'Conflict',
+    });
+  }
+}
 
 export const ORDENES_POR_PAGINA = 10;
 export const MENSAJE_ORDEN_ENTREGADA_NO_EDITA =
@@ -311,7 +341,154 @@ export class OrdenesService {
     return orden;
   }
 
+  // SWR-PAY-004 / AJ-09: registrar o corregir la cotización aprobada. Solo en
+  // EN_DIAGNOSTICO y sin pagos; después el valor queda fijo.
+  async registrarCotizacion(
+    id: number,
+    dto: RegistrarCotizacionDto,
+    userId: number,
+  ) {
+    try {
+      const resultado = await this.prisma.$transaction(async (tx) => {
+        const orden = await this.bloquearOrden(tx, id);
+        // Se cuentan los pagos CON la fila bloqueada: un pago simultáneo
+        // (Entrega B) espera a que esto termine, o esto espera al pago.
+        const { cantidadPagos } = await this.resumenPagos(tx, id);
+        const evaluacion = evaluarCotizacion(orden.estado, cantidadPagos);
+        if (!evaluacion.permitido) {
+          throw new RechazoNegocio(evaluacion.motivo, evaluacion.mensaje, {
+            estado: orden.estado,
+            cantidadPagos,
+          });
+        }
+        const actualizada = await tx.ordenServicio.update({
+          where: { id },
+          data: {
+            diagnostico: dto.diagnostico,
+            valorCotizado: dto.valorCotizado,
+            aprobadaEn: new Date(), // cada corrección es una nueva aprobación
+          },
+          select: { id: true, valorCotizado: true, aprobadaEn: true },
+        });
+        return { actualizada, valorAnterior: orden.valorCotizado };
+      });
+
+      this.logger.event(
+        'INFO',
+        'ORDER_QUOTE_SET',
+        'Cotización aprobada registrada',
+        {
+          ordenId: id,
+          valorCotizado: dto.valorCotizado,
+          valorAnterior: resultado.valorAnterior,
+          correccion: resultado.valorAnterior !== null,
+          userId,
+        },
+      );
+      return resultado.actualizada;
+    } catch (error) {
+      if (error instanceof RechazoNegocio) {
+        this.logger.event(
+          'WARN',
+          'ORDER_QUOTE_REJECTED',
+          'Cotización rechazada',
+          { ordenId: id, motivo: error.motivo, ...error.datos, userId },
+        );
+        throw error.comoConflicto();
+      }
+      throw error;
+    }
+  }
+
+  // SWR-ORD-011 + AJ-07 + AJ-10: cambio de estado solo en secuencia, con
+  // historial. La entrega (ENTREGADO) va por otra ruta (Entrega B).
+  async cambiarEstado(id: number, dto: CambiarEstadoDto, userId: number) {
+    try {
+      const anterior = await this.prisma.$transaction(async (tx) => {
+        // Con la fila bloqueada, dos clics seguidos se atienden uno tras
+        // otro: el segundo ya ve el estado nuevo y recibe MISMO_ESTADO.
+        const orden = await this.bloquearOrden(tx, id);
+        const { totalPagado } = await this.resumenPagos(tx, id);
+        const evaluacion = evaluarTransicion(orden.estado, dto.estadoNuevo, {
+          valorCotizado: orden.valorCotizado,
+          totalPagado,
+          porcentajeAbono: orden.porcentajeAbono,
+        });
+        if (!evaluacion.permitido) {
+          throw new RechazoNegocio(evaluacion.motivo, evaluacion.mensaje, {
+            de: orden.estado,
+            a: dto.estadoNuevo,
+            ...(evaluacion.motivo === 'FALTA_ABONO'
+              ? {
+                  abonoMinimo: evaluacion.abonoMinimo,
+                  totalPagado: evaluacion.totalPagado,
+                }
+              : {}),
+          });
+        }
+
+        await tx.ordenServicio.update({
+          where: { id },
+          data: { estado: dto.estadoNuevo },
+        });
+        await tx.historialEstado.create({
+          data: {
+            ordenId: id,
+            estadoAnterior: orden.estado,
+            estadoNuevo: dto.estadoNuevo,
+            usuarioId: userId,
+            comentario: dto.comentario ?? null,
+          },
+        });
+        return orden.estado;
+      });
+
+      this.logger.event(
+        'INFO',
+        'ORDER_STATUS_CHANGED',
+        'Estado de la orden cambiado',
+        { ordenId: id, de: anterior, a: dto.estadoNuevo, userId },
+      );
+      return { id, estado: dto.estadoNuevo };
+    } catch (error) {
+      if (error instanceof RechazoNegocio) {
+        this.logger.event(
+          'WARN',
+          'ORDER_TRANSITION_REJECTED',
+          'Cambio de estado rechazado',
+          { ordenId: id, motivo: error.motivo, ...error.datos, userId },
+        );
+        throw error.comoConflicto();
+      }
+      throw error;
+    }
+  }
+
   // ---------- auxiliares ----------
+
+  // Bloquea la fila de la orden hasta que termine la transacción (un UPDATE
+  // en PostgreSQL toma el candado de la fila). Así un pago, una corrección
+  // de la cotización o un cambio de estado simultáneos sobre la MISMA orden
+  // se atienden uno a la vez y cada uno ve lo que dejó el anterior.
+  private async bloquearOrden(tx: Prisma.TransactionClient, id: number) {
+    try {
+      return await tx.ordenServicio.update({
+        where: { id },
+        data: { actualizadoEn: new Date() },
+        select: {
+          id: true,
+          estado: true,
+          valorCotizado: true,
+          porcentajeAbono: true,
+        },
+      });
+    } catch (error) {
+      if (esNoEncontrado(error)) {
+        throw new NotFoundException('Orden no encontrada');
+      }
+      throw error;
+    }
+  }
 
   // SWR-ORD-001: el equipo debe ser DEL cliente y ambos estar activos.
   private async validarClienteYEquipo(clienteId: number, equipoId: number) {

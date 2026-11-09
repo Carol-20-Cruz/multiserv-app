@@ -2,10 +2,12 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Param,
   ParseIntPipe,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -17,7 +19,9 @@ import { PERMISOS } from '../auth/reglas/permisos';
 import type { RequestConUsuario } from '../auth/usuario-autenticado';
 import { ActualizarOrdenDto } from './dto/actualizar-orden.dto';
 import { BuscarOrdenesDto } from './dto/buscar-ordenes.dto';
+import { CambiarEstadoDto } from './dto/cambiar-estado.dto';
 import { CrearOrdenDto } from './dto/crear-orden.dto';
+import { RegistrarCotizacionDto } from './dto/registrar-cotizacion.dto';
 import { OrdenesService } from './ordenes.service';
 
 // Portero: token válido (JwtAuthGuard) y rol permitido (RolesGuard).
@@ -58,5 +62,27 @@ export class OrdenesController {
     @Req() req: RequestConUsuario,
   ) {
     return this.ordenesService.actualizar(id, dto, req.user!.id);
+  }
+
+  // SWR-PAY-004 / AJ-09: registrar o corregir la cotización aprobada
+  // (en diagnóstico y sin pagos).
+  @Put(':id/cotizacion')
+  registrarCotizacion(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: RegistrarCotizacionDto,
+    @Req() req: RequestConUsuario,
+  ) {
+    return this.ordenesService.registrarCotizacion(id, dto, req.user!.id);
+  }
+
+  // SWR-ORD-011 / AJ-07 / AJ-10: cambiar al siguiente estado.
+  @Post(':id/estado')
+  @HttpCode(200)
+  cambiarEstado(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CambiarEstadoDto,
+    @Req() req: RequestConUsuario,
+  ) {
+    return this.ordenesService.cambiarEstado(id, dto, req.user!.id);
   }
 }
