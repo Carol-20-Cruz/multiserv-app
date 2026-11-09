@@ -12,6 +12,9 @@ interface InicioContenidoProps {
   stockBajo?: number;
 }
 
+// Módulos que aún no existen: su tarjeta lleva "Próximamente".
+const EN_CONSTRUCCION = new Set(["/ordenes"]);
+
 // Contenido de la página de inicio: saludo y accesos a los módulos
 // (tarjetas con el estilo de las metric cards de la plantilla).
 export default function InicioContenido({ stockBajo }: InicioContenidoProps) {
@@ -54,9 +57,11 @@ export default function InicioContenido({ stockBajo }: InicioContenidoProps) {
               <h4 className="text-title-sm font-semibold text-gray-800 dark:text-white/90">
                 {modulo.label}
               </h4>
-              <Badge variant="light" color="warning" size="sm">
-                Próximamente
-              </Badge>
+              {EN_CONSTRUCCION.has(modulo.path ?? "") && (
+                <Badge variant="light" color="warning" size="sm">
+                  Próximamente
+                </Badge>
+              )}
             </div>
           </Link>
         ))}
