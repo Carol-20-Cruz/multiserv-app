@@ -184,6 +184,11 @@ model OrdenServicio {
   diagnostico String?
   sinReparar  Boolean @default(false)
 
+  // Registro mínimo de la cotización aprobada (SWR-PAY-004, AJ-09): el
+  // total en COP y cuándo lo aprobó el cliente. Se corrige solo sin pagos.
+  valorCotizado Int?
+  aprobadaEn    DateTime?
+
   // Entrega y garantía (F08)
   fechaEntrega      DateTime?
   entregadoPorId    Int?
@@ -214,6 +219,15 @@ model OrdenServicio {
   @@index([estado])
   @@index([responsableId])
   @@index([clienteId])
+  @@index([creadoEn])
+}
+
+// Consecutivo del número de orden MS-AAAA-NNNNN (SWR-ORD-002). AJ-06: un
+// contador por año, que empieza en 00001. Se incrementa de forma atómica
+// dentro de la transacción que crea la orden.
+model ConsecutivoOrden {
+  anio   Int @id
+  ultimo Int @default(0)
 }
 
 model HistorialEstado {
