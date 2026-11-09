@@ -84,6 +84,9 @@ export default function AgregarEquipoForm({
         `Equipo agregado: ${nombrePorId[datos.tipoEquipoId]} ${datos.marca}.`,
       );
       reset(VACIO); // listo para agregar otro
+      // ?equipo=1 borra el aviso anterior de arriba ("Cliente registrado
+      // correctamente."): el de esta acción se muestra junto al formulario.
+      router.push(`/clientes/${clienteId}?equipo=1`, { scroll: false });
       router.refresh(); // la tabla de equipos se actualiza
     } catch {
       setErrorServidor(MENSAJE_SIN_CONEXION);

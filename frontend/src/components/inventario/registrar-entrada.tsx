@@ -98,7 +98,8 @@ export default function RegistrarEntrada({
         return;
       }
       cambiarAbierto(false);
-      router.push(`/inventario/${repuestoId}?entrada=${cantidad}`);
+      // ?entrada=1 -> "Entrada registrada correctamente." reemplaza al aviso anterior.
+      router.push(`/inventario/${repuestoId}?entrada=1`, { scroll: false });
       router.refresh();
     } catch {
       setErrorServidor(MENSAJE_SIN_CONEXION);

@@ -27,13 +27,12 @@ interface DetallePageProps {
   }>;
 }
 
+// El aviso de la última acción (MensajeExito reemplaza al anterior).
 function mensajeDeAviso(aviso: Awaited<DetallePageProps["searchParams"]>) {
-  if (aviso.registrado) return "Repuesto registrado correctamente.";
+  if (aviso.entrada) return "Entrada registrada correctamente.";
   if (aviso.actualizado)
     return "Datos del repuesto actualizados correctamente.";
-  if (aviso.entrada && /^\d{1,9}$/.test(aviso.entrada)) {
-    return `Entrada registrada: +${aviso.entrada} unidad(es).`;
-  }
+  if (aviso.registrado) return "Repuesto registrado correctamente.";
   return null;
 }
 

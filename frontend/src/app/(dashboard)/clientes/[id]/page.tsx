@@ -19,7 +19,11 @@ export const metadata: Metadata = {
 
 interface DetallePageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ registrado?: string; actualizado?: string }>;
+  searchParams: Promise<{
+    registrado?: string;
+    actualizado?: string;
+    equipo?: string;
+  }>;
 }
 
 // Detalle del cliente con sus equipos y el formulario "Agregar equipo".
@@ -37,11 +41,15 @@ export default async function DetalleClientePage({
   ]);
   if (!cliente) notFound();
 
-  const mensaje = aviso.registrado
-    ? "Cliente registrado correctamente."
-    : aviso.actualizado
-      ? "Datos del cliente actualizados correctamente."
-      : null;
+  // Aviso de la última acción. "" (equipo agregado) borra el aviso anterior:
+  // el formulario "Agregar equipo" muestra su propio mensaje.
+  const mensaje = aviso.equipo
+    ? ""
+    : aviso.registrado
+      ? "Cliente registrado correctamente."
+      : aviso.actualizado
+        ? "Datos del cliente actualizados correctamente."
+        : null;
 
   return (
     <div>
