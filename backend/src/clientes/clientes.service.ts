@@ -93,6 +93,22 @@ export class ClientesService {
     });
   }
 
+  // SWR-CLI-004 / AJ-04: verificación ANTES de registrar (al salir del campo
+  // teléfono). Si el teléfono es de otro cliente se registra el duplicado,
+  // porque el formulario ya no enviará el POST y de otro modo no quedaría
+  // rastro. excluirId: el cliente que se está editando no cuenta.
+  async verificarTelefono(
+    telefono: string,
+    userId: number,
+    excluirId?: number,
+  ): Promise<ClienteBasico | null> {
+    const existente = await this.buscarPorTelefono(telefono);
+    if (!existente || existente.id === excluirId) return null;
+
+    this.registrarDuplicado(existente.id, userId, 'VERIFICACION');
+    return existente;
+  }
+
   // SWR-CLI-001 + SWR-CLI-004 / AJ-04 + Ley 1581.
   async crear(dto: CrearClienteDto, userId: number) {
     // AJ-04: verificar ANTES de registrar; si existe, se impide.
@@ -227,17 +243,26 @@ export class ClientesService {
     return cliente;
   }
 
+  // Log del duplicado, solo con ids. origen: dónde se detectó.
+  private registrarDuplicado(
+    clienteExistenteId: number,
+    userId: number,
+    origen: 'VERIFICACION' | 'REGISTRO',
+  ) {
+    this.logger.event(
+      'WARN',
+      'CLIENT_DUPLICATE_PHONE',
+      'Teléfono de un cliente existente',
+      { clienteExistenteId, userId, origen },
+    );
+  }
+
   // AJ-04: si el teléfono ya existe, 409 con los datos básicos del existente.
   private async impedirDuplicado(telefono: string, userId: number) {
     const existente = await this.buscarPorTelefono(telefono);
     if (!existente) return;
 
-    this.logger.event(
-      'WARN',
-      'CLIENT_DUPLICATE_PHONE',
-      'Registro impedido: teléfono ya existe',
-      { clienteExistenteId: existente.id, userId },
-    );
+    this.registrarDuplicado(existente.id, userId, 'REGISTRO');
     throw new ConflictException({
       statusCode: 409,
       message: MENSAJE_TELEFONO_DUPLICADO,

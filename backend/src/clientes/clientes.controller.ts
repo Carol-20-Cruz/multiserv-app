@@ -39,14 +39,23 @@ export class ClientesController {
 
   // SWR-CLI-004 / AJ-04: el formulario pregunta ANTES de enviar.
   // (Va antes de ':id' para que "verificar-telefono" no se tome como id.)
+  // excluir: id del cliente que se está editando (su propio teléfono no
+  // es un duplicado).
   @Get('verificar-telefono')
-  async verificarTelefono(@Query('telefono') telefono: unknown) {
+  async verificarTelefono(
+    @Query('telefono') telefono: unknown,
+    @Query('excluir', new ParseIntPipe({ optional: true }))
+    excluir: number | undefined,
+    @Req() req: RequestConUsuario,
+  ) {
     const resultado = validarTelefono(telefono);
     if (!resultado.valido) {
       throw new ErrorValidacion(['telefono'], [resultado.mensaje]);
     }
-    const cliente = await this.clientesService.buscarPorTelefono(
+    const cliente = await this.clientesService.verificarTelefono(
       resultado.telefono,
+      req.user!.id,
+      excluir,
     );
     return cliente ? { existe: true, cliente } : { existe: false };
   }

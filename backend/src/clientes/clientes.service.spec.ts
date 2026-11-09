@@ -90,11 +90,50 @@ describe('ClientesService (Prisma simulado)', () => {
     expect(log).toMatchObject({
       level: 'WARN',
       event: 'CLIENT_DUPLICATE_PHONE',
-      metadata: { clienteExistenteId: 42, userId: USER_ID },
+      metadata: { clienteExistenteId: 42, userId: USER_ID, origen: 'REGISTRO' },
     });
     const texto = JSON.stringify(log);
     expect(texto).not.toContain('3001234567');
     expect(texto).not.toContain('Pedro');
+  });
+
+  // SWR-CLI-004 + AJ-04: la verificación previa (al salir del campo) también
+  // deja rastro del duplicado, porque el formulario ya no enviará el POST.
+  it('verificar teléfono existente: lo devuelve y registra origen VERIFICACION', async () => {
+    // Arrange
+    prisma.cliente.findUnique.mockResolvedValue(existente);
+
+    // Act
+    const encontrado = await servicio.verificarTelefono('3001234567', USER_ID);
+
+    // Assert
+    expect(encontrado).toEqual(existente);
+    expect(logsEscritos(salida)[0]).toMatchObject({
+      level: 'WARN',
+      event: 'CLIENT_DUPLICATE_PHONE',
+      metadata: {
+        clienteExistenteId: 42,
+        userId: USER_ID,
+        origen: 'VERIFICACION',
+      },
+    });
+  });
+
+  // SWR-CLI-004: al editar, el propio teléfono del cliente no es duplicado.
+  it('verificar el teléfono del mismo cliente (excluir): no es duplicado ni se registra', async () => {
+    // Arrange
+    prisma.cliente.findUnique.mockResolvedValue(existente);
+
+    // Act
+    const encontrado = await servicio.verificarTelefono(
+      '3001234567',
+      USER_ID,
+      42,
+    );
+
+    // Assert
+    expect(encontrado).toBeNull();
+    expect(salida).not.toHaveBeenCalled();
   });
 
   // SWR-CLI-001 + Ley 1581: teléfono libre -> se crea con la autorización y
