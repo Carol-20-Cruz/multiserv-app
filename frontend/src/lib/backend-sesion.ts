@@ -78,5 +78,5 @@ export function idValido(id: string): boolean {
   return /^\d{1,9}$/.test(id);
 }
 
-export const respuestaNoEncontrado = () =>
-  NextResponse.json({ message: "Cliente no encontrado" }, { status: 404 });
+export const respuestaNoEncontrado = (mensaje = "Cliente no encontrado") =>
+  NextResponse.json({ message: mensaje }, { status: 404 });
