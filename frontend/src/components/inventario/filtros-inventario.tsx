@@ -51,9 +51,10 @@ export default function FiltrosInventario({
     <form
       role="search"
       onSubmit={aplicar}
-      className="flex w-full flex-col gap-3 lg:flex-row lg:items-end"
+      className="flex w-full min-w-0 flex-1 flex-col gap-3 lg:flex-row lg:items-end"
     >
-      <Field controlId="buscar" className="flex-1">
+      {/* min-w: sin él, el campo se encoge hasta partir la etiqueta. */}
+      <Field controlId="buscar" className="flex-1 lg:min-w-72">
         <FieldLabel>Buscar por nombre o referencia</FieldLabel>
         <Input
           type="search"
@@ -64,7 +65,7 @@ export default function FiltrosInventario({
         />
       </Field>
 
-      <Field controlId="tipoEquipoFiltro" className="lg:w-56">
+      <Field controlId="tipoEquipoFiltro" className="shrink-0 lg:w-56">
         <FieldLabel>Tipo de equipo</FieldLabel>
         <Select
           value={tipoEquipoId || TODOS}
@@ -93,7 +94,7 @@ export default function FiltrosInventario({
       <Field
         orientation="horizontal"
         controlId="soloStockBajo"
-        className="items-center lg:h-11"
+        className="w-auto shrink-0 items-center whitespace-nowrap lg:h-11"
       >
         <Checkbox
           checked={soloStockBajo}
