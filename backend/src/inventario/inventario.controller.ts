@@ -18,6 +18,7 @@ import type { RequestConUsuario } from '../auth/usuario-autenticado';
 import { ActualizarRepuestoDto } from './dto/actualizar-repuesto.dto';
 import { BuscarRepuestosDto } from './dto/buscar-repuestos.dto';
 import { CrearRepuestoDto } from './dto/crear-repuesto.dto';
+import { RegistrarEntradaDto } from './dto/registrar-entrada.dto';
 import { InventarioService } from './inventario.service';
 
 // Portero: token válido (JwtAuthGuard) y rol permitido (RolesGuard).
@@ -58,6 +59,16 @@ export class InventarioController {
     @Req() req: RequestConUsuario,
   ) {
     return this.inventarioService.actualizar(id, dto, req.user!.id);
+  }
+
+  // Entrada de repuestos del proveedor (suma stock con historial).
+  @Post(':id/entradas')
+  registrarEntrada(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: RegistrarEntradaDto,
+    @Req() req: RequestConUsuario,
+  ) {
+    return this.inventarioService.registrarEntrada(id, dto, req.user!.id);
   }
 
   // Desactivar sin borrar.

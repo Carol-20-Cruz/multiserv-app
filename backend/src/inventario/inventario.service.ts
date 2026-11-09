@@ -10,7 +10,15 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ActualizarRepuestoDto } from './dto/actualizar-repuesto.dto';
 import { BuscarRepuestosDto } from './dto/buscar-repuestos.dto';
 import { CrearRepuestoDto } from './dto/crear-repuesto.dto';
-import { esStockBajo } from './reglas/stock';
+import { RegistrarEntradaDto } from './dto/registrar-entrada.dto';
+import {
+  esStockBajo,
+  evaluarCambioStock,
+  type EstadoStock,
+} from './reglas/stock';
+
+// Dónde se detectó que el repuesto entró en existencia baja.
+type OrigenStockBajo = 'CREACION' | 'EDICION';
 
 export const REPUESTOS_POR_PAGINA = 10;
 export const MOTIVO_STOCK_INICIAL = 'Stock inicial';
@@ -151,6 +159,7 @@ export class InventarioService {
           userId,
         });
       }
+      this.alertarSiEntraEnBajo(null, repuesto, 'CREACION', userId);
       return conIndicador(repuesto);
     } catch (error) {
       // El candado @unique de la base atrapó un registro simultáneo.
@@ -212,6 +221,8 @@ export class InventarioService {
         repuestoId: id,
         userId,
       });
+      // SWR-INV-009: subir el mínimo puede dejar el repuesto en stock bajo.
+      this.alertarSiEntraEnBajo(actual, repuesto, 'EDICION', userId);
       return conIndicador(repuesto);
     } catch (error) {
       if (esUnicoViolado(error) && dto.referencia) {
@@ -219,6 +230,50 @@ export class InventarioService {
       }
       throw error;
     }
+  }
+
+  // Registrar repuestos que llegan del proveedor: suma stock y deja el
+  // movimiento ENTRADA con el saldo resultante, todo en una transacción.
+  // Una entrada solo suma, así que nunca hace ENTRAR en stock bajo; si el
+  // repuesto sigue bajo, la alerta se sigue viendo en la pantalla.
+  async registrarEntrada(id: number, dto: RegistrarEntradaDto, userId: number) {
+    await this.activoOFalla(
+      id,
+      'No se pueden registrar entradas en un repuesto desactivado',
+    );
+
+    const { repuesto, movimientoId } = await this.prisma.$transaction(
+      async (tx) => {
+        // increment es atómico: dos entradas simultáneas no se pisan.
+        const actualizado = await tx.repuesto.update({
+          where: { id },
+          data: { cantidad: { increment: dto.cantidad } },
+          select: SELECT_REPUESTO,
+        });
+        const movimiento = await tx.movimientoInventario.create({
+          data: {
+            repuestoId: id,
+            tipo: 'ENTRADA',
+            cantidad: dto.cantidad,
+            saldoResultante: actualizado.cantidad,
+            proveedor: dto.proveedor ?? null,
+            motivo: dto.motivo ?? null,
+            usuarioId: userId,
+          },
+          select: { id: true },
+        });
+        return { repuesto: actualizado, movimientoId: movimiento.id };
+      },
+    );
+
+    this.logger.event('INFO', 'STOCK_ENTRY', 'Entrada de inventario', {
+      repuestoId: id,
+      movimientoId,
+      cantidad: dto.cantidad,
+      saldoResultante: repuesto.cantidad,
+      userId,
+    });
+    return conIndicador(repuesto);
   }
 
   // Desactivar, nunca borrar.
@@ -237,6 +292,33 @@ export class InventarioService {
   }
 
   // ---------- auxiliares ----------
+
+  // SWR-INV-009: STOCK_LOW solo cuando el repuesto CRUZA el umbral (no en
+  // cada cambio mientras sigue bajo). antes = null -> repuesto nuevo.
+  private alertarSiEntraEnBajo(
+    antes: RepuestoSeleccionado | null,
+    despues: RepuestoSeleccionado,
+    origen: OrigenStockBajo,
+    userId: number,
+  ) {
+    const estado = (r: RepuestoSeleccionado): EstadoStock => ({
+      cantidad: r.cantidad,
+      minimo: r.cantidadMinima,
+    });
+    const cambio = evaluarCambioStock(
+      antes ? estado(antes) : null,
+      estado(despues),
+    );
+    if (cambio !== 'ENTRA_EN_BAJO') return;
+
+    this.logger.event('WARN', 'STOCK_LOW', 'Repuesto en existencia baja', {
+      repuestoId: despues.id,
+      cantidad: despues.cantidad,
+      cantidadMinima: despues.cantidadMinima,
+      origen,
+      userId,
+    });
+  }
 
   // cantidad <= cantidadMinima comparando dos columnas en la base
   // (la misma regla que esStockBajo).
