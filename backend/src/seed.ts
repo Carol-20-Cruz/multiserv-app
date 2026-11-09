@@ -1,4 +1,5 @@
-// Seed SOLO de usuarios de prueba (1 Dueño y 1 Técnico).
+// Seed de usuarios de prueba (1 Dueño y 1 Técnico) y del catálogo de
+// tipos de equipo.
 // Las contraseñas se leen de SEED_DUENO_PASSWORD y SEED_TECNICO_PASSWORD;
 // nunca se escriben en el código. Uso: npm run seed
 import 'dotenv/config';
@@ -7,6 +8,15 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaClient, Rol } from './generated/prisma/client';
 
 const RONDAS_BCRYPT = 10;
+
+const TIPOS_EQUIPO = [
+  'Televisor',
+  'Equipo de sonido',
+  'Lavadora',
+  'Estufa',
+  'Nevera',
+  'Aire acondicionado',
+];
 
 function leerVariable(nombre: string): string {
   const valor = process.env[nombre];
@@ -53,6 +63,17 @@ async function main(): Promise<void> {
       });
       console.log(`Usuario de prueba listo: ${datos.correo} (${datos.rol})`);
     }
+
+    // Catálogo de tipos de equipo (SWR-EQP-003). upsert: se puede correr
+    // varias veces sin duplicar.
+    for (const nombre of TIPOS_EQUIPO) {
+      await prisma.tipoEquipo.upsert({
+        where: { nombre },
+        create: { nombre },
+        update: {},
+      });
+    }
+    console.log(`Tipos de equipo listos: ${TIPOS_EQUIPO.length}`);
   } finally {
     await prisma.$disconnect();
   }

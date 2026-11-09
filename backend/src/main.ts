@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './logging/all-exceptions.filter';
+import { crearErrorValidacion } from './logging/error-validacion';
 import { JsonLogger } from './logging/json-logger';
 
 const logger = new JsonLogger('Bootstrap');
@@ -21,6 +22,10 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      // Un solo mensaje por campo (el primero que falle), no varios repetidos.
+      stopAtFirstError: true,
+      // Registra VALIDATION_FAILED con los nombres de los campos (sin valores).
+      exceptionFactory: crearErrorValidacion,
     }),
   );
   app.useGlobalFilters(new AllExceptionsFilter());

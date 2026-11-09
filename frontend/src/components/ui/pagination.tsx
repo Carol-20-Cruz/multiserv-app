@@ -74,7 +74,7 @@ function PaginationLink({
 
 function PaginationPrevious({
   className,
-  text = "Previous",
+  text = "Anterior",
   children,
   size = "default",
   variant,
@@ -82,7 +82,7 @@ function PaginationPrevious({
 }: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
   return (
     <PaginationLink
-      aria-label="Go to previous page"
+      aria-label="Ir a la página anterior"
       size={size}
       variant={variant}
       className={cn(className)}
@@ -103,7 +103,7 @@ function PaginationPrevious({
 
 function PaginationNext({
   className,
-  text = "Next",
+  text = "Siguiente",
   children,
   size = "default",
   variant,
@@ -111,7 +111,7 @@ function PaginationNext({
 }: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
   return (
     <PaginationLink
-      aria-label="Go to next page"
+      aria-label="Ir a la página siguiente"
       size={size}
       variant={variant}
       className={cn(className)}
@@ -143,7 +143,7 @@ function PaginationEllipsis({
       {...props}
     >
       {children ?? <HorizontalDotsIcon />}
-      <span className="sr-only">More pages</span>
+      <span className="sr-only">Más páginas</span>
     </span>
   );
 }
