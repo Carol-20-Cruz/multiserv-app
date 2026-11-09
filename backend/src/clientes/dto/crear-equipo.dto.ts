@@ -7,7 +7,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { TextoLimpio, TextoOpcional } from './transformaciones';
+import { PrimeraMayuscula, TextoOpcional } from './transformaciones';
 
 // POST /clientes/:id/equipos — SWR-EQP-003.
 // Tipo de equipo y marca obligatorios; referencia y serial opcionales.
@@ -17,7 +17,7 @@ export class CrearEquipoDto {
   @Min(1, { message: 'El tipo de equipo es obligatorio' })
   tipoEquipoId: number;
 
-  @TextoLimpio()
+  @PrimeraMayuscula() // "samsung" -> "Samsung"
   @MaxLength(60, { message: 'La marca admite máximo 60 caracteres' })
   @IsString({ message: 'La marca es obligatoria' })
   @IsNotEmpty({ message: 'La marca es obligatoria' })

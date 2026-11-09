@@ -13,6 +13,15 @@ export const TextoLimpio = () =>
     typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : value,
   );
 
+// Como TextoLimpio y además pone la PRIMERA letra en mayúscula, sin tocar
+// el resto: "samsung" -> "Samsung", "LG" -> "LG", "hisense" -> "Hisense".
+export const PrimeraMayuscula = () =>
+  Transform(({ value }: { value: unknown }) => {
+    if (typeof value !== 'string') return value;
+    const limpio = value.trim().replace(/\s+/g, ' ');
+    return limpio.charAt(0).toLocaleUpperCase('es-CO') + limpio.slice(1);
+  });
+
 // Texto opcional: igual que TextoLimpio, pero "" se guarda como null
 // (así, al editar, borrar el campo lo deja vacío en la base de datos).
 export const TextoOpcional = () =>

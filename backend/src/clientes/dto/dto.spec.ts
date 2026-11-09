@@ -121,4 +121,23 @@ describe('DTO de clientes y equipos', () => {
     expect(r2.dto.tipoEquipoId).toBe(2);
     expect(r2.dto.referencia).toBeNull();
   });
+
+  // SWR-EQP-003: la marca se guarda con la primera letra en mayúscula, sin
+  // cambiar el resto (siglas como LG quedan igual).
+  it('equipo: la marca se guarda con la primera letra en mayúscula', async () => {
+    // Arrange
+    const minuscula = { tipoEquipoId: 1, marca: '  samsung ' };
+    const siglas = { tipoEquipoId: 1, marca: 'LG' };
+    const tilde = { tipoEquipoId: 1, marca: 'électrolux' };
+
+    // Act
+    const r1 = await procesar(CrearEquipoDto, minuscula);
+    const r2 = await procesar(CrearEquipoDto, siglas);
+    const r3 = await procesar(CrearEquipoDto, tilde);
+
+    // Assert
+    expect(r1.dto.marca).toBe('Samsung');
+    expect(r2.dto.marca).toBe('LG');
+    expect(r3.dto.marca).toBe('Électrolux');
+  });
 });
