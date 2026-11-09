@@ -143,7 +143,7 @@ function PaginationEllipsis({
       {...props}
     >
       {children ?? <HorizontalDotsIcon />}
-      <span className="sr-only">More pages</span>
+      <span className="sr-only">Más páginas</span>
     </span>
   );
 }
