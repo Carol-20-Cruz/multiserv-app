@@ -79,7 +79,8 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
         existe: boolean;
         cliente?: ClienteBasico;
       }>(
-        `/api/clientes/verificar-telefono?telefono=${normalizarTelefono(telefono)}`,
+        `/api/clientes/verificar-telefono?telefono=${normalizarTelefono(telefono)}` +
+          (cliente ? `&excluir=${cliente.id}` : ""),
       );
       const existente = ok && cuerpo.existe ? cuerpo.cliente : undefined;
       setDuplicado(
