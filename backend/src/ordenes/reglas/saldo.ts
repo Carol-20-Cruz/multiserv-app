@@ -70,25 +70,51 @@ export interface OrdenParaPago {
   pagos: readonly number[];
 }
 
+type MotivoValorPago = Extract<
+  MotivoPagoRechazado,
+  'VACIO' | 'NO_ENTERO' | 'MENOR_A_UNO'
+>;
+
+// Solo el formato del valor (lo usa el DTO: responde 400 sin tocar la base).
+export function validarValorPago(
+  valor: unknown,
+):
+  | { valido: true; valor: number }
+  | { valido: false; motivo: MotivoValorPago; mensaje: string } {
+  // Camino 1: no llegó nada.
+  if (valor === undefined || valor === null || valor === '') {
+    return { valido: false, motivo: 'VACIO', mensaje: MENSAJES_PAGO.VACIO };
+  }
+  // Camino 2: texto, decimal, NaN...
+  if (!esEntero(valor)) {
+    return {
+      valido: false,
+      motivo: 'NO_ENTERO',
+      mensaje: MENSAJES_PAGO.NO_ENTERO,
+    };
+  }
+  // Camino 3: cero o negativo.
+  if (valor < 1) {
+    return {
+      valido: false,
+      motivo: 'MENOR_A_UNO',
+      mensaje: MENSAJES_PAGO.MENOR_A_UNO,
+    };
+  }
+  return { valido: true, valor };
+}
+
 // Orden de revisión (acordado con la dueña): primero el valor, luego la
 // orden y al final el saldo. Así una orden entregada con saldo 0 responde
 // ORDEN_ENTREGADA y no SUPERA_SALDO.
 export function validarPago(
-  valor: unknown,
+  entrada: unknown,
   orden: OrdenParaPago,
 ): ResultadoPago {
-  // Camino 1: no llegó nada.
-  if (valor === undefined || valor === null || valor === '') {
-    return rechazo('VACIO');
-  }
-  // Camino 2: texto, decimal, NaN...
-  if (!esEntero(valor)) {
-    return rechazo('NO_ENTERO');
-  }
-  // Camino 3: cero o negativo.
-  if (valor < 1) {
-    return rechazo('MENOR_A_UNO');
-  }
+  // Caminos 1 a 3: el formato del valor.
+  const formato = validarValorPago(entrada);
+  if (!formato.valido) return formato;
+  const { valor } = formato;
   // Camino 4: la orden ya salió del taller.
   if (orden.estado === EstadoOrden.ENTREGADO) {
     return rechazo('ORDEN_ENTREGADA');

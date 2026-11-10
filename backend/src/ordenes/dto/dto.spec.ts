@@ -2,11 +2,14 @@ import 'reflect-metadata'; // en la app lo carga NestJS
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { MENSAJES_VALOR } from '../reglas/cotizacion';
+import { MENSAJES_PAGO } from '../reglas/saldo';
 import { ActualizarOrdenDto } from './actualizar-orden.dto';
 import { BuscarOrdenesDto } from './buscar-ordenes.dto';
 import { CambiarEstadoDto } from './cambiar-estado.dto';
 import { CrearOrdenDto, MENSAJE_DIRECCION_DOMICILIO } from './crear-orden.dto';
+import { EntregarOrdenDto } from './entregar-orden.dto';
 import { RegistrarCotizacionDto } from './registrar-cotizacion.dto';
+import { RegistrarPagoDto } from './registrar-pago.dto';
 
 // Simula lo que hace el ValidationPipe global de main.ts.
 async function procesar<T extends object>(clase: new () => T, cuerpo: object) {
@@ -200,5 +203,103 @@ describe('DTO de órdenes', () => {
     // Assert
     expect(campos).toEqual([]);
     expect(dto.pagina).toBe(2);
+  });
+  // ---------- RegistrarPagoDto (SWR-PAY-004) ----------
+
+  it('pago válido: limpia la referencia y deja vacía como null', async () => {
+    // Act
+    const { dto, campos } = await procesar(RegistrarPagoDto, {
+      valor: 125000,
+      medio: 'TRANSFERENCIA',
+      referencia: '  PRUEBA-TRF-001 ',
+    });
+    const sinReferencia = await procesar(RegistrarPagoDto, {
+      valor: 1,
+      medio: 'EFECTIVO',
+      referencia: '   ',
+    });
+
+    // Assert
+    expect(campos).toEqual([]);
+    expect(dto.referencia).toBe('PRUEBA-TRF-001');
+    expect(sinReferencia.campos).toEqual([]);
+    expect(sinReferencia.dto.referencia).toBeNull();
+  });
+
+  it.each([
+    [undefined, MENSAJES_PAGO.VACIO],
+    ['125000', MENSAJES_PAGO.NO_ENTERO],
+    [1000.5, MENSAJES_PAGO.NO_ENTERO],
+    [0, MENSAJES_PAGO.MENOR_A_UNO],
+  ])('valor del pago %p: %s', async (valor, mensaje) => {
+    // Act
+    const { mensajes } = await procesar(RegistrarPagoDto, {
+      valor,
+      medio: 'EFECTIVO',
+    });
+
+    // Assert
+    expect(mensajes).toEqual([mensaje]);
+  });
+
+  it('pago con medio desconocido o tipo enviado por el navegador: rechazado', async () => {
+    // Act
+    const { campos, mensajes } = await procesar(RegistrarPagoDto, {
+      valor: 1000,
+      medio: 'CHEQUE',
+      tipo: 'SALDO',
+    });
+
+    // Assert
+    expect([...campos].sort()).toEqual(['medio', 'tipo']);
+    expect(mensajes).toContain('El medio de pago no es válido');
+  });
+
+  // ---------- EntregarOrdenDto (SWR-ENT-003) ----------
+
+  // Fronteras de "Recibido por": 3 y 100 caracteres, ya recortados.
+  it.each([
+    ['  Ana   Gómez ', 'Ana Gómez'],
+    ['Ana', 'Ana'],
+    ['a'.repeat(100), 'a'.repeat(100)],
+  ])('recibido por %p: válido como %p', async (nombre, esperado) => {
+    // Act
+    const { dto, campos } = await procesar(EntregarOrdenDto, {
+      recibidoPorNombre: nombre,
+    });
+
+    // Assert
+    expect(campos).toEqual([]);
+    expect(dto.recibidoPorNombre).toBe(esperado);
+  });
+
+  it.each(['Al', '   Al  ', 'a'.repeat(101)])(
+    'recibido por %p: fuera de 3 a 100',
+    async (nombre) => {
+      // Act
+      const { mensajes } = await procesar(EntregarOrdenDto, {
+        recibidoPorNombre: nombre,
+      });
+
+      // Assert
+      expect(mensajes).toEqual([
+        'El nombre de quien recibe debe tener entre 3 y 100 caracteres',
+      ]);
+    },
+  );
+
+  it('entregar sin nombre o con documento: rechazado', async () => {
+    // Act
+    const sinNombre = await procesar(EntregarOrdenDto, {});
+    const conDocumento = await procesar(EntregarOrdenDto, {
+      recibidoPorNombre: 'Ana Gómez',
+      documento: '1012345678',
+    });
+
+    // Assert
+    expect(sinNombre.mensajes).toEqual([
+      'El nombre de quien recibe es obligatorio',
+    ]);
+    expect(conDocumento.campos).toEqual(['documento']);
   });
 });

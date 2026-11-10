@@ -17,7 +17,9 @@ import {
   CrearOrdenDto,
   MENSAJE_DIRECCION_DOMICILIO,
 } from './dto/crear-orden.dto';
+import { EntregarOrdenDto } from './dto/entregar-orden.dto';
 import { RegistrarCotizacionDto } from './dto/registrar-cotizacion.dto';
+import { RegistrarPagoDto } from './dto/registrar-pago.dto';
 import { abonoMinimo } from './reglas/abono';
 import { evaluarCotizacion } from './reglas/cotizacion';
 import {
@@ -25,6 +27,13 @@ import {
   siguientePorCambioDeEstado,
 } from './reglas/estados';
 import { anioColombia, formatearNumeroOrden } from './reglas/numero-orden';
+import {
+  calcularSaldo,
+  puedeEntregar,
+  tipoPago,
+  validarPago,
+  vencimientoGarantia,
+} from './reglas/saldo';
 
 // Error de Prisma por registro inexistente en un update.
 const esNoEncontrado = (error: unknown): boolean =>
@@ -58,6 +67,19 @@ export const ORDENES_POR_PAGINA = 10;
 export const MENSAJE_ORDEN_ENTREGADA_NO_EDITA =
   'No se puede editar una orden entregada';
 
+// Pesos colombianos sin decimales: 125000 -> "$ 125.000".
+export const formatearPesos = (valor: number) =>
+  `$ ${valor.toLocaleString('es-CO', { maximumFractionDigits: 0 })}`;
+
+// SWR-ENT-003: por qué no se puede entregar (respuesta 409).
+export const MENSAJES_ENTREGA = {
+  YA_ENTREGADO: 'La orden ya fue entregada',
+  NO_ESTA_LISTA: 'Solo se entrega una orden que está lista para entrega',
+} as const;
+
+export const mensajeSaldoPendiente = (saldo: number) =>
+  `Saldo pendiente ${formatearPesos(saldo)}: no se puede entregar`;
+
 // Lo que muestra la lista (y el dashboard en la Entrega B).
 const SELECT_LISTA = {
   id: true,
@@ -90,6 +112,23 @@ const SELECT_DETALLE = {
   diagnostico: true,
   aprobadaEn: true,
   actualizadoEn: true,
+  fechaEntrega: true,
+  recibidoPorNombre: true,
+  fechaVencGarantia: true,
+  entregadoPor: { select: { id: true, nombre: true } },
+  // SWR-PAY-004: abonos y saldo, del más antiguo al más nuevo.
+  pagos: {
+    orderBy: { fecha: 'asc' },
+    select: {
+      id: true,
+      tipo: true,
+      medio: true,
+      valor: true,
+      referencia: true,
+      fecha: true,
+      usuario: { select: { nombre: true } },
+    },
+  },
   cliente: {
     select: { id: true, nombre: true, telefono: true, activo: true },
   },
@@ -269,11 +308,14 @@ export class OrdenesService {
         })
       : null;
     const cotizacion = evaluarCotizacion(orden.estado, cantidadPagos);
+    const saldo = calcularSaldo(orden.valorCotizado, [totalPagado]);
 
     return {
       ...orden,
       totalPagado,
       cantidadPagos,
+      saldo,
+      puedeEntregar: puedeEntregar(orden.estado, saldo),
       abonoMinimo:
         orden.valorCotizado === null
           ? null
@@ -404,7 +446,7 @@ export class OrdenesService {
   }
 
   // SWR-ORD-011 + AJ-07 + AJ-10: cambio de estado solo en secuencia, con
-  // historial. La entrega (ENTREGADO) va por otra ruta (Entrega B).
+  // historial. La entrega (ENTREGADO) va por entregar().
   async cambiarEstado(id: number, dto: CambiarEstadoDto, userId: number) {
     try {
       const anterior = await this.prisma.$transaction(async (tx) => {
@@ -467,6 +509,161 @@ export class OrdenesService {
     }
   }
 
+  // SWR-PAY-004: registrar un abono o el pago del saldo. El tipo lo decide
+  // el servidor (SALDO si cubre todo lo que falta; si no, ABONO).
+  async registrarPago(id: number, dto: RegistrarPagoDto, userId: number) {
+    try {
+      const { pago, saldoResultante } = await this.prisma.$transaction(
+        async (tx) => {
+          // PRIMERO se bloquea la fila; DESPUÉS se suman los pagos. Así dos
+          // pagos simultáneos se atienden uno tras otro y el segundo ve el
+          // saldo que dejó el primero (nunca se paga de más).
+          const orden = await this.bloquearOrden(tx, id);
+          const { totalPagado } = await this.resumenPagos(tx, id);
+          const validacion = validarPago(dto.valor, {
+            estado: orden.estado,
+            valorCotizado: orden.valorCotizado,
+            pagos: [totalPagado],
+          });
+          if (!validacion.valido) {
+            throw new RechazoNegocio(validacion.motivo, validacion.mensaje, {});
+          }
+
+          const creado = await tx.pago.create({
+            data: {
+              ordenId: id,
+              tipo: tipoPago(validacion.valor, validacion.saldo),
+              medio: dto.medio,
+              valor: validacion.valor,
+              referencia: dto.referencia ?? null,
+              usuarioId: userId,
+            },
+            select: {
+              id: true,
+              tipo: true,
+              medio: true,
+              valor: true,
+              referencia: true,
+              fecha: true,
+            },
+          });
+          return { pago: creado, saldoResultante: validacion.saldoResultante };
+        },
+      );
+
+      // Sin la referencia: puede identificar una cuenta bancaria.
+      this.logger.event('INFO', 'PAYMENT_REGISTERED', 'Pago registrado', {
+        ordenId: id,
+        pagoId: pago.id,
+        tipo: pago.tipo,
+        medio: pago.medio,
+        valor: pago.valor,
+        saldoResultante,
+        userId,
+      });
+      return { pago, saldo: saldoResultante };
+    } catch (error) {
+      if (error instanceof RechazoNegocio) {
+        this.logger.event('WARN', 'PAYMENT_REJECTED', 'Pago rechazado', {
+          ordenId: id,
+          motivo: error.motivo,
+          userId,
+        });
+        throw error.comoConflicto();
+      }
+      throw error;
+    }
+  }
+
+  // SWR-ENT-003: entregar el equipo. Solo en LISTO_PARA_ENTREGA y con saldo
+  // 0. Guarda quién entregó, quién recibió y hasta cuándo va la garantía.
+  async entregar(id: number, dto: EntregarOrdenDto, userId: number) {
+    try {
+      const resultado = await this.prisma.$transaction(async (tx) => {
+        const orden = await this.bloquearOrden(tx, id);
+        const { totalPagado } = await this.resumenPagos(tx, id);
+        const saldo = calcularSaldo(orden.valorCotizado, [totalPagado]);
+
+        if (!puedeEntregar(orden.estado, saldo)) {
+          if (orden.estado === EstadoOrden.ENTREGADO) {
+            throw new RechazoNegocio(
+              'YA_ENTREGADO',
+              MENSAJES_ENTREGA.YA_ENTREGADO,
+              { estado: orden.estado },
+            );
+          }
+          if (orden.estado !== EstadoOrden.LISTO_PARA_ENTREGA) {
+            throw new RechazoNegocio(
+              'NO_ESTA_LISTA',
+              MENSAJES_ENTREGA.NO_ESTA_LISTA,
+              { estado: orden.estado },
+            );
+          }
+          // LISTO_PARA_ENTREGA con saldo > 0. (Sin cotización no se llega
+          // a LISTO: evaluarTransicion exige el abono para reparar.)
+          const pendiente = saldo ?? 0;
+          throw new RechazoNegocio(
+            'SALDO_PENDIENTE',
+            mensajeSaldoPendiente(pendiente),
+            { saldo: pendiente },
+          );
+        }
+
+        const fechaEntrega = new Date();
+        const fechaVencGarantia = vencimientoGarantia(
+          fechaEntrega,
+          orden.diasGarantia,
+        );
+        await tx.ordenServicio.update({
+          where: { id },
+          data: {
+            estado: EstadoOrden.ENTREGADO,
+            fechaEntrega,
+            entregadoPorId: userId,
+            recibidoPorNombre: dto.recibidoPorNombre,
+            fechaVencGarantia,
+          },
+        });
+        await tx.historialEstado.create({
+          data: {
+            ordenId: id,
+            estadoAnterior: orden.estado,
+            estadoNuevo: EstadoOrden.ENTREGADO,
+            usuarioId: userId,
+          },
+        });
+        return { fechaEntrega, fechaVencGarantia };
+      });
+
+      // Sin recibidoPorNombre: es un dato personal.
+      this.logger.event('INFO', 'ORDER_DELIVERED', 'Equipo entregado', {
+        ordenId: id,
+        userId,
+      });
+      return { id, estado: EstadoOrden.ENTREGADO, ...resultado };
+    } catch (error) {
+      if (error instanceof RechazoNegocio) {
+        if (error.motivo === 'SALDO_PENDIENTE') {
+          this.logger.event(
+            'WARN',
+            'DELIVERY_BLOCKED_BALANCE',
+            'Entrega bloqueada por saldo pendiente',
+            { ordenId: id, saldo: error.datos.saldo, userId },
+          );
+        } else {
+          this.logger.event('WARN', 'DELIVERY_REJECTED', 'Entrega rechazada', {
+            ordenId: id,
+            motivo: error.motivo,
+            ...error.datos,
+            userId,
+          });
+        }
+        throw error.comoConflicto();
+      }
+      throw error;
+    }
+  }
+
   // ---------- auxiliares ----------
 
   // Bloquea la fila de la orden hasta que termine la transacción (un UPDATE
@@ -483,6 +680,7 @@ export class OrdenesService {
           estado: true,
           valorCotizado: true,
           porcentajeAbono: true,
+          diasGarantia: true,
         },
       });
     } catch (error) {
@@ -530,7 +728,7 @@ export class OrdenesService {
     }
   }
 
-  // Suma y cantidad de pagos de la orden (0 hasta que llegue la Entrega B).
+  // Suma y cantidad de pagos de la orden.
   private async resumenPagos(
     cliente: PrismaService | Prisma.TransactionClient,
     ordenId: number,
