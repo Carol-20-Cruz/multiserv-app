@@ -1,0 +1,95 @@
+MultiServ - Evidencia Shift Right (logs del backend)
+Modulo: Ordenes de servicio, Entrega A - prueba real parte 1 (feature/ordenes)
+Fecha de ejecucion: 10/11/2026
+Ambiente: backend NestJS local (puerto 3001, build de produccion) conectado a Supabase;
+          frontend Next.js local (puerto 3000, next start). Prueba hecha desde la pantalla
+          con Chrome sin cabeza (clics y tecleo reales).
+SWR relacionados: SWR-ORD-001, SWR-ORD-002, SWR-ORD-011, SWR-PAY-004 (ajustes AJ-03, AJ-06, AJ-07, AJ-09 y AJ-10)
+Nota de privacidad: las lineas de log (JSON) no contienen contrasenas, hashes, tokens, correos ni nombres,
+ni la falla reportada, el diagnostico, telefonos o direcciones. Solo ids, numero de orden, estados, montos
+y motivos. Se verifico buscando en el archivo el nombre y el telefono del cliente, la falla, el diagnostico,
+los accesorios, el estado del equipo, la direccion, el nombre del usuario, tokens JWT, hashes bcrypt, las
+contrasenas del seed, el secreto JWT y los correos: 0 coincidencias.
+Se omiten las lineas internas de arranque de NestJS (NEST_LOG).
+No se insertaron pagos a mano: la orden queda con 0 pagos (los pagos llegan en la Entrega B).
+
+Datos usados:
+  clienteId 21 (cliente activo de la prueba de clientes, 1 equipo), equipoId 18 (Nevera Haceb Assentti 255)
+  ordenId 1 = MS-2026-00001 (primera orden del ano 2026)
+Usuarios: userId 2 = Tecnico de prueba (AJ-03: el Tecnico registra ordenes).
+
+======================================================================
+ESCENARIO 0 - Inicio de la aplicacion
+Resultado esperado: evento INFO APP_STARTED
+Resultado obtenido: PASS
+======================================================================
+{"timestamp":"2026-11-10T13:06:04.498Z","level":"INFO","context":"Bootstrap","event":"APP_STARTED","message":"Servidor iniciado","metadata":{"port":3001}}
+
+======================================================================
+ESCENARIO 1 - Login del Tecnico
+Resultado esperado: HTTP 200 y LOGIN_SUCCESS solo con userId; el Inicio ya no muestra "Proximamente" en Ordenes
+Resultado obtenido: PASS
+======================================================================
+{"timestamp":"2026-11-10T13:07:07.079Z","level":"INFO","context":"AuthService","event":"LOGIN_SUCCESS","message":"Inicio de sesión exitoso","metadata":{"userId":2}}
+
+======================================================================
+ESCENARIO 2 - Crear la orden desde "Nueva orden" en la fila del equipo (SWR-ORD-001, SWR-ORD-002, AJ-06)
+Resultado esperado: el formulario abre con el cliente y el equipo elegidos (?clienteId=21&equipoId=18); al crear,
+                    ORDER_CREATED con numero MS-AAAA-NNNNN y responsable = quien crea; el detalle muestra
+                    "Orden creada correctamente." y el estado Recibido
+Resultado obtenido: numero MS-2026-00001, responsableId 2, detalle en /ordenes/1 con el aviso - PASS
+======================================================================
+{"timestamp":"2026-11-10T13:07:17.220Z","level":"INFO","context":"OrdenesService","event":"ORDER_CREATED","message":"Orden de servicio creada","metadata":{"ordenId":1,"numero":"MS-2026-00001","clienteId":21,"equipoId":18,"responsableId":2,"userId":2}}
+
+======================================================================
+ESCENARIO 3 - Registrar la cotizacion con la orden en RECIBIDO (llamada directa a la ventanilla /api)
+Resultado esperado: HTTP 409 motivo ESTADO_NO_PERMITE y ORDER_QUOTE_REJECTED (WARN) con estado y cantidad de pagos
+Resultado obtenido: 409 "La cotización solo se registra o corrige mientras la orden está en diagnóstico" - PASS
+======================================================================
+{"timestamp":"2026-11-10T13:07:18.775Z","level":"WARN","context":"OrdenesService","event":"ORDER_QUOTE_REJECTED","message":"Cotización rechazada","metadata":{"ordenId":1,"motivo":"ESTADO_NO_PERMITE","estado":"RECIBIDO","cantidadPagos":0,"userId":2}}
+
+======================================================================
+ESCENARIO 4 - Editar los datos de la recepcion (/ordenes/1/editar, cambia los accesorios)
+Resultado esperado: ORDER_UPDATED solo con ids; el detalle muestra el dato nuevo
+Resultado obtenido: el detalle muestra Accesorios "Bandeja de hielo" - PASS
+======================================================================
+{"timestamp":"2026-11-10T13:07:21.081Z","level":"INFO","context":"OrdenesService","event":"ORDER_UPDATED","message":"Orden actualizada","metadata":{"ordenId":1,"userId":2}}
+
+======================================================================
+ESCENARIO 5 - Pasar de RECIBIDO a EN_DIAGNOSTICO con comentario (SWR-ORD-011)
+Resultado esperado: ORDER_STATUS_CHANGED de RECIBIDO a EN_DIAGNOSTICO; la linea de tiempo muestra el paso con el
+                    comentario; el boton "Pasar a «En reparación»" queda deshabilitado con el aviso FALTA_VALOR_COTIZADO
+Resultado obtenido: boton deshabilitado con "Falta registrar la cotización aprobada para pasar a reparación" - PASS
+======================================================================
+{"timestamp":"2026-11-10T13:07:23.269Z","level":"INFO","context":"OrdenesService","event":"ORDER_STATUS_CHANGED","message":"Estado de la orden cambiado","metadata":{"ordenId":1,"de":"RECIBIDO","a":"EN_DIAGNOSTICO","userId":2}}
+
+======================================================================
+ESCENARIO 6 - Registrar la cotizacion aprobada: 180.000 (SWR-PAY-004, AJ-09)
+Resultado esperado: ORDER_QUOTE_SET con valorAnterior null y correccion false; abono minimo 50 % = 90.000
+Resultado obtenido: valor $ 180.000, abono minimo $ 90.000 - PASS
+======================================================================
+{"timestamp":"2026-11-10T13:07:26.729Z","level":"INFO","context":"OrdenesService","event":"ORDER_QUOTE_SET","message":"Cotización aprobada registrada","metadata":{"ordenId":1,"valorCotizado":180000,"valorAnterior":null,"correccion":false,"userId":2}}
+
+======================================================================
+ESCENARIO 7 - Corregir la cotizacion sin pagos: 180.001 (AJ-09, respuesta de la duena)
+Resultado esperado: ORDER_QUOTE_SET con valorAnterior 180000 y correccion true; abono minimo = techo(180.001 x 50 / 100) = 90.001
+Resultado obtenido: valor $ 180.001, abono minimo $ 90.001, pagado $ 0 (0 pagos) - PASS
+======================================================================
+{"timestamp":"2026-11-10T13:07:30.825Z","level":"INFO","context":"OrdenesService","event":"ORDER_QUOTE_SET","message":"Cotización aprobada registrada","metadata":{"ordenId":1,"valorCotizado":180001,"valorAnterior":180000,"correccion":true,"userId":2}}
+
+======================================================================
+ESCENARIO 8 - Intentar pasar a EN_REPARACION sin abono (AJ-10)
+Resultado esperado: en la pantalla el boton esta deshabilitado con el aviso "Falta el abono mínimo para pasar a reparación
+                    (mínimo $ 90.001; pagado $ 0)."; la llamada directa a la ventanilla /api responde 409 FALTA_ABONO y
+                    queda ORDER_TRANSITION_REJECTED (WARN) con abonoMinimo y totalPagado; la orden sigue en EN_DIAGNOSTICO
+Resultado obtenido: boton deshabilitado con el aviso; 409 "Falta el abono mínimo para pasar a reparación" motivo FALTA_ABONO;
+                    la lista filtrada por "En diagnóstico" muestra 1 orden - PASS
+======================================================================
+{"timestamp":"2026-11-10T13:07:33.653Z","level":"WARN","context":"OrdenesService","event":"ORDER_TRANSITION_REJECTED","message":"Cambio de estado rechazado","metadata":{"ordenId":1,"motivo":"FALTA_ABONO","de":"EN_DIAGNOSTICO","a":"EN_REPARACION","abonoMinimo":90001,"totalPagado":0,"userId":2}}
+
+======================================================================
+ESCENARIO 9 - Nueva captura del detalle y del dialogo de correccion (sin guardar)
+Resultado esperado: solo el inicio de sesion del Tecnico, sin cambios en la orden
+Resultado obtenido: 1 LOGIN_SUCCESS (userId 2) - PASS
+======================================================================
+{"timestamp":"2026-11-10T13:08:14.191Z","level":"INFO","context":"AuthService","event":"LOGIN_SUCCESS","message":"Inicio de sesión exitoso","metadata":{"userId":2}}
