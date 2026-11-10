@@ -97,7 +97,10 @@ export default async function DetalleClientePage({
           title={`Equipos (${cliente.equipos.length})`}
           desc="Electrodomésticos asociados a este cliente."
         >
-          <TablaEquipos equipos={cliente.equipos} />
+          <TablaEquipos
+            equipos={cliente.equipos}
+            clienteId={cliente.activo ? cliente.id : undefined}
+          />
         </ComponentCard>
 
         {cliente.activo && (
