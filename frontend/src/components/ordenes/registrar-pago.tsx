@@ -16,7 +16,7 @@ import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
-  mensajeDeError,
+  mensajeAlGuardar,
   MENSAJE_SIN_CONEXION,
   pedirApi,
 } from "@/lib/api-navegador";
@@ -141,9 +141,7 @@ export default function RegistrarPago({
         referencia: datos.referencia || null,
       });
       if (!res.ok) {
-        setErrorServidor(
-          mensajeDeError(res.cuerpo, "No se pudo registrar el pago"),
-        );
+        setErrorServidor(mensajeAlGuardar(res, "registrar el pago"));
         return;
       }
       setExito(true);

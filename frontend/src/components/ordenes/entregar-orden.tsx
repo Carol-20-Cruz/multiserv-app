@@ -15,7 +15,7 @@ import {
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
-  mensajeDeError,
+  mensajeAlGuardar,
   MENSAJE_SIN_CONEXION,
   pedirApi,
 } from "@/lib/api-navegador";
@@ -133,9 +133,7 @@ export default function EntregarOrden(props: EntregarOrdenProps) {
         { recibidoPorNombre: datos.recibidoPorNombre },
       );
       if (!res.ok) {
-        setErrorServidor(
-          mensajeDeError(res.cuerpo, "No se pudo registrar la entrega"),
-        );
+        setErrorServidor(mensajeAlGuardar(res, "registrar la entrega"));
         return;
       }
       setExito(true);

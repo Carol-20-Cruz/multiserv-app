@@ -236,4 +236,27 @@ describe("Entregar el equipo", () => {
       screen.getByText("Garantía hasta").nextElementSibling,
     ).toHaveTextContent("10/12/2026, 11:59");
   });
+  // Defecto 10: un error inesperado no muestra detalles técnicos.
+  it("el backend responde 500: mensaje de error inesperado", async () => {
+    // Arrange
+    respuesta = {
+      status: 500,
+      cuerpo: { statusCode: 500, message: "Error interno del servidor" },
+    };
+    const { user, recibido, confirmar } = await abrir();
+    await user.type(recibido, "Ana Gómez");
+
+    // Act
+    await user.click(confirmar);
+
+    // Assert
+    expect(
+      await screen.findByText(
+        "Ocurrió un error al registrar la entrega. Intenta de nuevo y, si se repite, avisa al administrador.",
+      ),
+    ).toBeVisible();
+    expect(
+      screen.queryByText("Error interno del servidor"),
+    ).not.toBeInTheDocument();
+  });
 });

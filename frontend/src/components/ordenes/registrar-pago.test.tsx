@@ -248,4 +248,49 @@ describe("Registrar un pago", () => {
     }
     expect(fetchFalso).toHaveBeenCalledTimes(1);
   });
+  // Defecto 10: la ruta /api respondió la página 404 de Next (HTML, sin
+  // "message"). Antes se veía "No se pudo registrar el pago".
+  it("respuesta 404 en HTML: mensaje de error inesperado sin detalles", async () => {
+    // Arrange
+    fetchFalso.mockImplementationOnce(
+      async () =>
+        new Response("<!DOCTYPE html><html>404</html>", {
+          status: 404,
+          headers: { "Content-Type": "text/html" },
+        }),
+    );
+    const { user, guardar } = await abrir();
+
+    // Act
+    await user.click(guardar);
+
+    // Assert
+    expect(
+      await screen.findByText(
+        "Ocurrió un error al registrar el pago. Intenta de nuevo y, si se repite, avisa al administrador.",
+      ),
+    ).toBeVisible();
+    expect(screen.queryByText(/DOCTYPE|404/)).not.toBeInTheDocument();
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it("el backend responde 500: mensaje de error inesperado (no el técnico)", async () => {
+    // Arrange
+    respuesta = {
+      status: 500,
+      cuerpo: { statusCode: 500, message: "Error interno del servidor" },
+    };
+    const { user, guardar } = await abrir();
+
+    // Act
+    await user.click(guardar);
+
+    // Assert
+    expect(
+      await screen.findByText(/Ocurrió un error al registrar el pago\./),
+    ).toBeVisible();
+    expect(
+      screen.queryByText("Error interno del servidor"),
+    ).not.toBeInTheDocument();
+  });
 });
