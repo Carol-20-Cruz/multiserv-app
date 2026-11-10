@@ -331,4 +331,43 @@ describe("Formulario de orden de servicio", () => {
     expect(llamadas("PATCH")[0][0]).toBe("/api/ordenes/77");
     expect(router.push).toHaveBeenCalledWith("/ordenes/77?actualizada=1");
   });
+
+  // Verificación (doble clic): mientras se envía y después del éxito (la
+  // navegación tarda), "Crear orden" queda deshabilitado: un segundo clic
+  // no envía otra orden.
+  it("doble clic en Crear orden: se envía una sola vez", async () => {
+    // Arrange: el backend tarda en responder hasta que lo liberamos.
+    let liberar!: () => void;
+    fetchFalso.mockImplementationOnce(
+      () =>
+        new Promise<Response>((ok) => {
+          liberar = () =>
+            ok(
+              new Response(JSON.stringify({ id: 77 }), {
+                status: 201,
+              }),
+            );
+        }),
+    );
+    const { user, falla, crear } = dibujarNueva();
+    await user.type(falla, "No enfría");
+
+    // Act
+    await user.click(crear);
+    await user.click(crear);
+
+    // Assert 1: mientras se envía.
+    expect(crear).toBeDisabled();
+    expect(crear).toHaveTextContent("Guardando...");
+    expect(llamadas("POST")).toHaveLength(1);
+
+    // Act 2: el backend responde; la página aún no cambia.
+    liberar();
+    await screen.findByRole("status");
+    await user.click(crear);
+
+    // Assert 2
+    expect(crear).toBeDisabled();
+    expect(llamadas("POST")).toHaveLength(1);
+  });
 });

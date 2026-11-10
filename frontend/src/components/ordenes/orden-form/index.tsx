@@ -423,8 +423,14 @@ export default function OrdenForm({
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <Button type="submit" size="lg" disabled={isSubmitting}>
-          {isSubmitting
+        {/* También deshabilitado tras el éxito: mientras router.push navega,
+            un segundo clic crearía otra orden. */}
+        <Button
+          type="submit"
+          size="lg"
+          disabled={isSubmitting || exito !== null}
+        >
+          {isSubmitting || exito !== null
             ? "Guardando..."
             : editando
               ? "Guardar cambios"

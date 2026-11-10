@@ -185,4 +185,53 @@ describe("Avanzar el estado de la orden", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Entregar equipo");
   });
+
+  // Verificación (doble clic): mientras se guarda el cambio, "Confirmar
+  // cambio" queda deshabilitado y se envía un solo POST.
+  it("doble clic en Confirmar cambio: se envía una sola vez", async () => {
+    // Arrange
+    let liberar!: () => void;
+    fetchFalso.mockImplementationOnce(
+      () =>
+        new Promise<Response>((ok) => {
+          liberar = () =>
+            ok(
+              new Response(JSON.stringify({ id: 5 }), {
+                status: 200,
+              }),
+            );
+        }),
+    );
+    const user = userEvent.setup();
+    render(
+      <AvanzarEstado
+        ordenId={5}
+        estado="RECIBIDO"
+        siguienteEstado="EN_DIAGNOSTICO"
+        bloqueo={null}
+        abonoMinimo={null}
+        totalPagado={0}
+      />,
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Pasar a «En diagnóstico»" }),
+    );
+    const confirmar = await screen.findByRole("button", {
+      name: "Confirmar cambio",
+    });
+
+    // Act
+    await user.click(confirmar);
+    await user.click(confirmar);
+
+    // Assert
+    expect(confirmar).toBeDisabled();
+    expect(confirmar).toHaveTextContent("Guardando...");
+    expect(fetchFalso).toHaveBeenCalledTimes(1);
+
+    // Limpieza
+    liberar();
+    await vi.waitFor(() => expect(router.push).toHaveBeenCalledTimes(1));
+    expect(fetchFalso).toHaveBeenCalledTimes(1);
+  });
 });

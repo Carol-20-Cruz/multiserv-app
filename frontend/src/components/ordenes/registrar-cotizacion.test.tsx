@@ -167,4 +167,35 @@ describe("Registrar la cotización aprobada", () => {
     expect(screen.getByRole("dialog")).toBeVisible();
     expect(router.push).not.toHaveBeenCalled();
   });
+
+  // Verificación (doble clic): mientras se guarda, "Guardar cotización"
+  // queda deshabilitado y se envía un solo PUT.
+  it("doble clic en Guardar cotización: se envía una sola vez", async () => {
+    // Arrange
+    let liberar!: () => void;
+    fetchFalso.mockImplementationOnce(
+      () =>
+        new Promise<Response>((ok) => {
+          liberar = () =>
+            ok(new Response(JSON.stringify({ id: 5 }), { status: 200 }));
+        }),
+    );
+    const { user, diagnostico, valor, guardar } = await abrir();
+    await user.type(diagnostico, "Compresor dañado");
+    await user.type(valor, "250.000");
+
+    // Act
+    await user.click(guardar);
+    await user.click(guardar);
+
+    // Assert
+    expect(guardar).toBeDisabled();
+    expect(guardar).toHaveTextContent("Guardando...");
+    expect(fetchFalso).toHaveBeenCalledTimes(1);
+
+    // Limpieza: el backend responde y el diálogo se cierra.
+    liberar();
+    await screen.findByRole("button", { name: /cotización$/ });
+    expect(fetchFalso).toHaveBeenCalledTimes(1);
+  });
 });
