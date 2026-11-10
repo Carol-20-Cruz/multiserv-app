@@ -11,7 +11,7 @@ export const MENSAJE_SIN_CONEXION = "No se pudo conectar con el servidor";
 
 export async function pedirApi<T = unknown>(
   url: string,
-  metodo: "GET" | "POST" | "PATCH" = "GET",
+  metodo: "GET" | "POST" | "PATCH" | "PUT" = "GET",
   datos?: unknown,
 ): Promise<RespuestaApi<T>> {
   const res = await fetch(url, {

@@ -35,7 +35,7 @@ export async function obtenerDelBackend<T>(ruta: string): Promise<T | null> {
 export async function reenviarAlBackend(
   request: NextRequest,
   ruta: string,
-  metodo: "GET" | "POST" | "PATCH",
+  metodo: "GET" | "POST" | "PATCH" | "PUT",
 ): Promise<NextResponse> {
   if (!esMismoOrigen(request)) {
     return NextResponse.json(
