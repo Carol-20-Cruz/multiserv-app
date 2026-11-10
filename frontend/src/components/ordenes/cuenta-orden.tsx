@@ -3,7 +3,6 @@ import {
   ProgressIndicator,
   ProgressLabel,
   ProgressTrack,
-  ProgressValue,
 } from "@/components/ui/progress-bar";
 import {
   Table,
@@ -98,7 +97,13 @@ export default function CuentaOrden({
 
       <Progress value={porcentaje}>
         <ProgressLabel>Pagado</ProgressLabel>
-        <ProgressValue>{() => `${porcentaje} %`}</ProgressValue>
+        {/* Defecto 9: este archivo es un Server Component y las props hacia
+            un componente cliente deben ser serializables. ProgressValue
+            solo acepta una FUNCIÓN como hijo, así que el porcentaje va ya
+            calculado en un span normal (la barra conserva aria-valuenow). */}
+        <span className="ms-auto text-sm font-medium text-gray-500 tabular-nums dark:text-gray-400">
+          {porcentaje} %
+        </span>
         <ProgressTrack className="basis-full">
           <ProgressIndicator />
         </ProgressTrack>

@@ -67,6 +67,7 @@ describe("Cuenta de la orden", () => {
       "aria-valuenow",
       "50",
     );
+    expect(screen.getByText("50 %")).toBeVisible();
     const tabla = screen.getByRole("table", { name: "Pagos de la orden" });
     const filas = within(tabla).getAllByRole("row");
     expect(filas).toHaveLength(2); // encabezado + 1 pago
