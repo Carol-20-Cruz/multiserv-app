@@ -4,6 +4,7 @@ import PageBreadcrumb from "@/components/common/page-breadcrumb";
 import AvanzarEstado from "@/components/ordenes/avanzar-estado";
 import CuentaOrden from "@/components/ordenes/cuenta-orden";
 import DetalleOrden from "@/components/ordenes/detalle-orden";
+import EntregarOrden from "@/components/ordenes/entregar-orden";
 import LineaTiempo from "@/components/ordenes/linea-tiempo";
 import RegistrarCotizacion from "@/components/ordenes/registrar-cotizacion";
 import { buttonVariants } from "@/components/ui/button";
@@ -27,11 +28,13 @@ interface DetallePageProps {
     cotizacion?: string;
     estado?: string;
     pago?: string;
+    entregada?: string;
   }>;
 }
 
 // El aviso de la última acción (MensajeExito reemplaza al anterior).
 function mensajeDeAviso(aviso: Awaited<DetallePageProps["searchParams"]>) {
+  if (aviso.entregada) return "Equipo entregado correctamente.";
   if (aviso.pago) return "Pago registrado correctamente.";
   if (aviso.estado) return "Estado actualizado correctamente.";
   if (aviso.cotizacion) return "Cotización guardada correctamente.";
@@ -41,7 +44,8 @@ function mensajeDeAviso(aviso: Awaited<DetallePageProps["searchParams"]>) {
 }
 
 // Detalle de la orden: recepción, cotización aprobada, cambio de estado e
-// historial, cuenta y pagos (SWR-ORD-001, SWR-ORD-011, SWR-PAY-004).
+// historial, cuenta, pagos y entrega (SWR-ORD-001, SWR-ORD-011,
+// SWR-PAY-004, SWR-ENT-003).
 export default async function DetalleOrdenPage({
   params,
   searchParams,
@@ -139,17 +143,29 @@ export default async function DetalleOrdenPage({
 
           <ComponentCard
             title="Cuenta"
-            desc="Los pagos se descuentan del valor aprobado y nunca lo superan."
+            desc="Los pagos se descuentan del valor aprobado. El equipo se entrega con saldo en cero."
           >
-            <CuentaOrden
-              id={orden.id}
-              estado={orden.estado}
-              valorCotizado={orden.valorCotizado}
-              totalPagado={orden.totalPagado}
-              saldo={orden.saldo}
-              abonoMinimo={orden.abonoMinimo}
-              pagos={orden.pagos}
-            />
+            <div className="space-y-5">
+              <CuentaOrden
+                id={orden.id}
+                estado={orden.estado}
+                valorCotizado={orden.valorCotizado}
+                totalPagado={orden.totalPagado}
+                saldo={orden.saldo}
+                abonoMinimo={orden.abonoMinimo}
+                pagos={orden.pagos}
+              />
+              <EntregarOrden
+                ordenId={orden.id}
+                estado={orden.estado}
+                saldo={orden.saldo}
+                puedeEntregar={orden.puedeEntregar}
+                fechaEntrega={orden.fechaEntrega}
+                recibidoPorNombre={orden.recibidoPorNombre}
+                fechaVencGarantia={orden.fechaVencGarantia}
+                entregadoPor={orden.entregadoPor}
+              />
+            </div>
           </ComponentCard>
 
           <ComponentCard
