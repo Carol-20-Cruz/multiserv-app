@@ -122,6 +122,9 @@ model Cliente {
   tipoDocumento     TipoDocumento?
   numeroDocumento   String?        @unique
   nombre            String
+  // Defecto 7: nombre sin tildes y en minúsculas, para buscar. Lo llena un
+  // trigger de la base (migración busqueda_sin_tildes); el código no lo escribe.
+  nombreBusqueda    String         @default("")
   telefono          String         @unique // AJ-04: un teléfono por cliente
   telefonoAlterno   String?
   correo            String?
@@ -313,6 +316,8 @@ model Pago {
 model Repuesto {
   id              Int      @id @default(autoincrement())
   nombre          String
+  // Defecto 7: igual que Cliente.nombreBusqueda (lo llena un trigger).
+  nombreBusqueda  String   @default("")
   referencia      String   @unique
   marcaCompatible String
   tipoEquipoId    Int // AJ-05: un solo tipo de equipo, obligatorio
