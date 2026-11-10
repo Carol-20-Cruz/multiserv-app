@@ -1,4 +1,9 @@
-import { errorTelefono, normalizarTelefono } from "@/lib/telefono";
+import {
+  alternoIgualAlPrincipal,
+  errorTelefono,
+  MENSAJE_ALTERNO_IGUAL,
+  normalizarTelefono,
+} from "@/lib/telefono";
 import { z } from "zod";
 
 // Validación en el navegador (avisa rápido; el backend decide).
@@ -27,26 +32,32 @@ const telefonoOpcional = z.string().superRefine((valor, ctx) => {
 const textoOpcional = (max: number, campo: string) =>
   z.string().trim().max(max, `${campo} admite máximo ${max} caracteres`);
 
-export const clienteSchema = z.object({
-  nombre: z
-    .string()
-    .trim()
-    .min(1, "El nombre es obligatorio")
-    .max(120, "El nombre admite máximo 120 caracteres"),
-  telefono: telefonoObligatorio,
-  telefonoAlterno: telefonoOpcional,
-  correo: z
-    .string()
-    .trim()
-    .max(254)
-    .refine(
-      (valor) => valor === "" || z.email().safeParse(valor).success,
-      "Ingresa un correo válido",
-    ),
-  direccion: textoOpcional(200, "La dirección"),
-  barrio: textoOpcional(80, "El barrio"),
-  ciudad: textoOpcional(80, "La ciudad"),
-  autorizaDatos: z.boolean().refine((valor) => valor, MENSAJE_AUTORIZACION),
-});
+export const clienteSchema = z
+  .object({
+    nombre: z
+      .string()
+      .trim()
+      .min(1, "El nombre es obligatorio")
+      .max(120, "El nombre admite máximo 120 caracteres"),
+    telefono: telefonoObligatorio,
+    telefonoAlterno: telefonoOpcional,
+    correo: z
+      .string()
+      .trim()
+      .max(254)
+      .refine(
+        (valor) => valor === "" || z.email().safeParse(valor).success,
+        "Ingresa un correo válido",
+      ),
+    direccion: textoOpcional(200, "La dirección"),
+    barrio: textoOpcional(80, "El barrio"),
+    ciudad: textoOpcional(80, "La ciudad"),
+    autorizaDatos: z.boolean().refine((valor) => valor, MENSAJE_AUTORIZACION),
+  })
+  // Defecto 6: el alterno debe ser otro número (al crear y al editar).
+  .refine(
+    (datos) => !alternoIgualAlPrincipal(datos.telefono, datos.telefonoAlterno),
+    { path: ["telefonoAlterno"], message: MENSAJE_ALTERNO_IGUAL },
+  );
 
 export type ClienteFormData = z.infer<typeof clienteSchema>;

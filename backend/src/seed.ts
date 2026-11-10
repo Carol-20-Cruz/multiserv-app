@@ -1,5 +1,5 @@
-// Seed de usuarios de prueba (1 Dueño y 1 Técnico) y del catálogo de
-// tipos de equipo.
+// Seed de usuarios de prueba (1 Dueño y 1 Técnico), del catálogo de
+// tipos de equipo y de la fila de configuración del taller.
 // Las contraseñas se leen de SEED_DUENO_PASSWORD y SEED_TECNICO_PASSWORD;
 // nunca se escriben en el código. Uso: npm run seed
 import 'dotenv/config';
@@ -74,6 +74,18 @@ async function main(): Promise<void> {
       });
     }
     console.log(`Tipos de equipo listos: ${TIPOS_EQUIPO.length}`);
+
+    // Configuración del taller (una sola fila, id 1). Las órdenes copian de
+    // aquí el porcentaje de abono (50 %, confirmado por la dueña) y los días
+    // de garantía. update vacío: no pisa lo que la dueña haya cambiado.
+    const configuracion = await prisma.configuracion.upsert({
+      where: { id: 1 },
+      create: { id: 1 },
+      update: {},
+    });
+    console.log(
+      `Configuración lista: abono ${configuracion.porcentajeAbono} %, garantía ${configuracion.diasGarantia} días`,
+    );
   } finally {
     await prisma.$disconnect();
   }

@@ -47,6 +47,8 @@ export default function RepuestoForm({ tipos, repuesto }: RepuestoFormProps) {
   const router = useRouter();
   const editando = Boolean(repuesto);
   const [errorServidor, setErrorServidor] = useState<string | null>(null);
+  // true cuando ya se guardó y la página está navegando al detalle.
+  const [guardado, setGuardado] = useState(false);
   const nombrePorId = Object.fromEntries(
     tipos.map((t) => [String(t.id), t.nombre]),
   );
@@ -124,6 +126,7 @@ export default function RepuestoForm({ tipos, repuesto }: RepuestoFormProps) {
         return;
       }
 
+      setGuardado(true);
       router.push(
         `/inventario/${res.cuerpo.id}?${editando ? "actualizado" : "registrado"}=1`,
       );
@@ -251,8 +254,10 @@ export default function RepuestoForm({ tipos, repuesto }: RepuestoFormProps) {
       )}
 
       <div className="flex flex-wrap gap-3">
-        <Button type="submit" size="lg" disabled={isSubmitting}>
-          {isSubmitting
+        {/* También deshabilitado tras el éxito: mientras router.push navega,
+            un segundo clic enviaría el repuesto otra vez. */}
+        <Button type="submit" size="lg" disabled={isSubmitting || guardado}>
+          {isSubmitting || guardado
             ? "Guardando..."
             : editando
               ? "Guardar cambios"

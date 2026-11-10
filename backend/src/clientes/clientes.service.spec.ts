@@ -5,6 +5,7 @@ import {
   MENSAJE_TELEFONO_DUPLICADO,
 } from './clientes.service';
 import type { CrearClienteDto } from './dto/crear-cliente.dto';
+import { MENSAJE_ALTERNO_IGUAL } from './reglas/telefono';
 
 // Prisma simulado (mock): un "actor" que hace de base de datos, para probar
 // las decisiones del servicio sin conectarse a Supabase.
@@ -12,6 +13,8 @@ function crearPrismaFalso() {
   return {
     cliente: {
       findUnique: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
     },
@@ -194,6 +197,73 @@ describe('ClientesService (Prisma simulado)', () => {
     expect(prisma.cliente.update).not.toHaveBeenCalled();
   });
 
+  // Defecto 6: al editar SOLO el alterno, se compara con el principal
+  // guardado: igual -> 400 en telefonoAlterno y no se actualiza.
+  it('editar solo el alterno igual al principal guardado: 400', async () => {
+    // Arrange
+    prisma.cliente.findUnique.mockResolvedValue({
+      ...existente,
+      telefonoAlterno: null,
+    });
+
+    // Act
+    const promesa = servicio.actualizar(
+      42,
+      { telefonoAlterno: '3001234567' },
+      USER_ID,
+    );
+
+    // Assert
+    const error = (await promesa.catch(
+      (e: unknown) => e,
+    )) as BadRequestException;
+    expect(error).toBeInstanceOf(BadRequestException);
+    expect(error.getResponse()).toMatchObject({
+      message: [MENSAJE_ALTERNO_IGUAL],
+    });
+    expect(prisma.cliente.update).not.toHaveBeenCalled();
+  });
+
+  // Defecto 6: al editar SOLO el principal para que quede igual al alterno
+  // guardado, también se rechaza (antes de revisar duplicados).
+  it('editar solo el principal igual al alterno guardado: 400', async () => {
+    // Arrange
+    prisma.cliente.findUnique.mockResolvedValue({
+      ...existente,
+      telefonoAlterno: '3109998877',
+    });
+
+    // Act
+    const promesa = servicio.actualizar(
+      42,
+      { telefono: '3109998877' },
+      USER_ID,
+    );
+
+    // Assert
+    await expect(promesa).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.cliente.findUnique).toHaveBeenCalledTimes(1);
+    expect(prisma.cliente.update).not.toHaveBeenCalled();
+  });
+
+  // Defecto 6: borrar el alterno (null) siempre se permite.
+  it('editar borrando el alterno: actualiza', async () => {
+    // Arrange
+    prisma.cliente.findUnique.mockResolvedValue({
+      ...existente,
+      telefonoAlterno: '3109998877',
+    });
+    prisma.cliente.update.mockResolvedValue(existente);
+
+    // Act
+    await servicio.actualizar(42, { telefonoAlterno: null }, USER_ID);
+
+    // Assert
+    expect(prisma.cliente.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { telefonoAlterno: null } }),
+    );
+  });
+
   // SWR-EQP-003: no se asocian equipos con un tipo inexistente.
   it('agregar equipo con tipo inexistente: 400 y no crea', async () => {
     // Arrange
@@ -233,5 +303,61 @@ describe('ClientesService (Prisma simulado)', () => {
       event: 'EQUIPMENT_ADDED',
       metadata: { equipoId: 15, clienteId: 42, userId: USER_ID },
     });
+  });
+
+  // ---------- Defecto 7: buscar sin tildes ----------
+
+  // Defecto 7: "Maria Fernanda" busca en nombreBusqueda ya normalizado
+  // (la base guarda "maria fernanda ortiz" para "María Fernanda Ortiz").
+  it('buscar "Maria Fernanda": usa nombreBusqueda normalizado', async () => {
+    // Arrange
+    prisma.cliente.findMany.mockResolvedValue([]);
+    prisma.cliente.count.mockResolvedValue(0);
+
+    // Act
+    await servicio.buscar({ buscar: 'MARÍA  Fernanda' });
+
+    // Assert
+    expect(prisma.cliente.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          activo: true,
+          OR: [{ nombreBusqueda: { contains: 'maria fernanda' } }],
+        },
+      }),
+    );
+  });
+
+  // El teléfono se sigue buscando por sus dígitos.
+  it('buscar "300 123": nombre normalizado y teléfono por dígitos', async () => {
+    // Arrange
+    prisma.cliente.findMany.mockResolvedValue([]);
+    prisma.cliente.count.mockResolvedValue(0);
+
+    // Act
+    await servicio.buscar({ buscar: '300 123' });
+
+    // Assert
+    const { where } = prisma.cliente.findMany.mock.calls[0][0] as {
+      where: { OR: unknown[] };
+    };
+    expect(where.OR).toEqual([
+      { nombreBusqueda: { contains: '300 123' } },
+      { telefono: { contains: '300123' } },
+    ]);
+  });
+
+  // nombreBusqueda es un dato interno: el detalle no lo devuelve.
+  it('detalle del cliente: omite nombreBusqueda', async () => {
+    // Arrange
+    prisma.cliente.findUnique.mockResolvedValue({ ...existente, equipos: [] });
+
+    // Act
+    await servicio.obtener(42);
+
+    // Assert
+    expect(prisma.cliente.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ omit: { nombreBusqueda: true } }),
+    );
   });
 });

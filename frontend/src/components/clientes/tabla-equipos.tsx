@@ -7,14 +7,26 @@ import {
 } from "@/components/ui/table";
 import { formatearFecha } from "@/lib/fechas";
 import type { Equipo } from "@/lib/tipos-clientes";
+import Link from "next/link";
 
 const celdaEncabezado =
   "px-5 py-3 text-start text-theme-xs font-medium text-gray-500 dark:text-gray-400";
 const celda =
   "px-5 py-4 text-start text-theme-sm text-gray-600 dark:text-gray-400";
 
+interface TablaEquiposProps {
+  equipos: Equipo[];
+  // Solo si el cliente está activo: cada fila lleva "Nueva orden"
+  // (SWR-ORD-001), que abre el formulario con el cliente y el equipo.
+  clienteId?: number;
+}
+
 // Equipos activos del cliente (SWR-EQP-003).
-export default function TablaEquipos({ equipos }: { equipos: Equipo[] }) {
+export default function TablaEquipos({
+  equipos,
+  clienteId,
+}: TablaEquiposProps) {
+  const columnas = clienteId === undefined ? 5 : 6;
   return (
     <div className="max-w-full overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
       <Table>
@@ -33,12 +45,17 @@ export default function TablaEquipos({ equipos }: { equipos: Equipo[] }) {
                 </TableCell>
               ),
             )}
+            {clienteId !== undefined && (
+              <TableCell isHeader scope="col" className={celdaEncabezado}>
+                <span className="sr-only">Acciones</span>
+              </TableCell>
+            )}
           </TableRow>
         </TableHeader>
         <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
           {equipos.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className={`${celda} text-center`}>
+              <TableCell colSpan={columnas} className={`${celda} text-center`}>
                 Este cliente aún no tiene equipos registrados.
               </TableCell>
             </TableRow>
@@ -58,6 +75,20 @@ export default function TablaEquipos({ equipos }: { equipos: Equipo[] }) {
                 <TableCell className={`${celda} whitespace-nowrap`}>
                   {formatearFecha(equipo.creadoEn)}
                 </TableCell>
+                {clienteId !== undefined && (
+                  <TableCell className={`${celda} text-end`}>
+                    <Link
+                      href={`/ordenes/nueva?clienteId=${clienteId}&equipoId=${equipo.id}`}
+                      className="whitespace-nowrap text-brand-500 hover:underline dark:text-brand-400"
+                    >
+                      Nueva orden
+                      <span className="sr-only">
+                        {" "}
+                        para {equipo.tipoEquipo.nombre} {equipo.marca}
+                      </span>
+                    </Link>
+                  </TableCell>
+                )}
               </TableRow>
             ))
           )}

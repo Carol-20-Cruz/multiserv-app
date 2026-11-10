@@ -7,7 +7,12 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
-import { EsTelefono, TextoLimpio, TextoOpcional } from './transformaciones';
+import {
+  AlternoDistinto,
+  EsTelefono,
+  TextoLimpio,
+  TextoOpcional,
+} from './transformaciones';
 
 // POST /clientes — SWR-CLI-001, SWR-CLI-003 y Ley 1581.
 export class CrearClienteDto {
@@ -22,7 +27,9 @@ export class CrearClienteDto {
   @EsTelefono()
   telefono: string;
 
+  // Defecto 6: distinto del principal.
   @IsOptional()
+  @AlternoDistinto()
   @EsTelefono({
     opcional: true,
     message: 'El teléfono alterno debe tener 10 dígitos',

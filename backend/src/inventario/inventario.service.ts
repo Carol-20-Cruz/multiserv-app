@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { textoBusqueda } from '../comun/texto-busqueda';
 import type { Prisma } from '../generated/prisma/client';
 import { JsonLogger } from '../logging/json-logger';
 import { PrismaService } from '../prisma/prisma.service';
@@ -71,6 +72,9 @@ export class InventarioService {
     soloStockBajo,
     pagina = 1,
   }: BuscarRepuestosDto) {
+    // Defecto 7: el nombre se busca sin tildes ni mayúsculas en
+    // "nombreBusqueda" (la llena un trigger); la referencia es un código.
+    const nombre = buscar ? textoBusqueda(buscar) : '';
     const where: Prisma.RepuestoWhereInput = {
       activo: true,
       ...(tipoEquipoId ? { tipoEquipoId } : {}),
@@ -78,7 +82,7 @@ export class InventarioService {
       ...(buscar
         ? {
             OR: [
-              { nombre: { contains: buscar, mode: 'insensitive' } },
+              ...(nombre ? [{ nombreBusqueda: { contains: nombre } }] : []),
               { referencia: { contains: buscar, mode: 'insensitive' } },
             ],
           }

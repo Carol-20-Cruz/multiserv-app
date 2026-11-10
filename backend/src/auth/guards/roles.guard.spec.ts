@@ -1,4 +1,11 @@
-import { Controller, Get, INestApplication, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  INestApplication,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
@@ -29,6 +36,13 @@ class RutasDePruebaController {
   @Get('repuestos/:id')
   @Roles(...PERMISOS.repuestos)
   repuestos() {
+    return { ok: true };
+  }
+
+  @Post('ordenes/:id/estado')
+  @HttpCode(200)
+  @Roles(...PERMISOS.ordenes)
+  cambiarEstadoOrden() {
     return { ok: true };
   }
 }
@@ -103,6 +117,24 @@ describe('RolesGuard dentro de NestJS', () => {
     // Assert
     expect(res.status).toBe(200);
   });
+
+  // AJ-03 + validación con la dueña: el Técnico registra órdenes (y, en la
+  // Entrega B, pagos). Tanto el Dueño como el Técnico pasan el portero.
+  it.each([Rol.TECNICO, Rol.DUENO])(
+    '%s en órdenes (cambiar estado): responde 200',
+    async (rol) => {
+      // Arrange
+      const token = tokenDe(rol);
+
+      // Act
+      const res = await request(app.getHttpServer())
+        .post('/prueba/ordenes/5/estado')
+        .set('Authorization', `Bearer ${token}`);
+
+      // Assert
+      expect(res.status).toBe(200);
+    },
+  );
 
   // AJ-03: inventario es solo del Dueño. El Técnico recibe 403 y queda
   // ACCESS_DENIED con el patrón de la ruta, sin la URL real ni su búsqueda.

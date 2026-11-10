@@ -248,8 +248,14 @@ export default function ClienteForm({ cliente }: ClienteFormProps) {
       )}
 
       <div className="flex flex-wrap gap-3">
-        <Button type="submit" size="lg" disabled={isSubmitting}>
-          {isSubmitting
+        {/* También deshabilitado tras el éxito: mientras router.push navega,
+            un segundo clic enviaría el cliente otra vez. */}
+        <Button
+          type="submit"
+          size="lg"
+          disabled={isSubmitting || exito !== null}
+        >
+          {isSubmitting || exito !== null
             ? "Guardando..."
             : editando
               ? "Guardar cambios"

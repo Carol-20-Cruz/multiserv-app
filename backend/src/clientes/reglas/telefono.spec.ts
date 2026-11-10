@@ -1,4 +1,5 @@
 import {
+  alternoIgualAlPrincipal,
   LONGITUD_TELEFONO,
   MENSAJES_TELEFONO,
   normalizarTelefono,
@@ -157,5 +158,36 @@ describe('Reglas del teléfono del cliente', () => {
 
     // Assert
     expect(resultado).toBe('3001234567');
+  });
+
+  // ---------- Defecto 6: alterno distinto del principal ----------
+
+  // Defecto 6: el mismo número escrito con otro formato sigue siendo igual
+  // (se compara ya normalizado, AJ-08).
+  it.each([
+    ['3001234567', '3001234567'],
+    ['300 123 4567', '300-123-4567'],
+    ['3001234567', ' 300 1234567 '],
+  ])('principal %p y alterno %p: iguales', (principal, alterno) => {
+    // Act
+    const resultado = alternoIgualAlPrincipal(principal, alterno);
+
+    // Assert
+    expect(resultado).toBe(true);
+  });
+
+  // Defecto 6 (caja blanca): caminos 1, 2 y 3 con resultado "distinto".
+  it.each([
+    ['camino 1: sin alterno (undefined)', '3001234567', undefined],
+    ['camino 1: alterno null', '3001234567', null],
+    ['camino 1: sin principal', undefined, '3001234567'],
+    ['camino 2: alterno vacío', '3001234567', '  - '],
+    ['camino 3: números distintos', '3001234567', '3001234568'],
+  ])('%s: no son iguales', (_caso, principal, alterno) => {
+    // Act
+    const resultado = alternoIgualAlPrincipal(principal, alterno);
+
+    // Assert
+    expect(resultado).toBe(false);
   });
 });

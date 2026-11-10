@@ -4,6 +4,7 @@ import { validate } from 'class-validator';
 import { ActualizarClienteDto } from './actualizar-cliente.dto';
 import { CrearClienteDto } from './crear-cliente.dto';
 import { CrearEquipoDto } from './crear-equipo.dto';
+import { MENSAJE_ALTERNO_IGUAL } from '../reglas/telefono';
 
 // Simula lo que hace el ValidationPipe global: transformar y validar.
 async function procesar<T extends object>(clase: new () => T, cuerpo: object) {
@@ -43,6 +44,49 @@ describe('DTO de clientes y equipos', () => {
     expect(dto.telefono).toBe('3001234567');
     expect(dto.telefonoAlterno).toBeNull();
     expect(dto.correo).toBeNull();
+  });
+
+  // Defecto 6: al crear, el alterno igual al principal (aunque venga con
+  // otro formato) se rechaza con su mensaje.
+  it('crear con alterno igual al principal: rechazado', async () => {
+    // Arrange
+    const cuerpo = {
+      ...clienteValido,
+      telefono: '300 123 4567',
+      telefonoAlterno: '300-123-4567',
+    };
+
+    // Act
+    const { campos, mensajes } = await procesar(CrearClienteDto, cuerpo);
+
+    // Assert
+    expect(campos).toEqual(['telefonoAlterno']);
+    expect(mensajes).toEqual([MENSAJE_ALTERNO_IGUAL]);
+  });
+
+  // Defecto 6: un alterno distinto sí se acepta.
+  it('crear con alterno distinto: válido', async () => {
+    // Arrange
+    const cuerpo = { ...clienteValido, telefonoAlterno: '3109998877' };
+
+    // Act
+    const { dto, campos } = await procesar(CrearClienteDto, cuerpo);
+
+    // Assert
+    expect(campos).toEqual([]);
+    expect(dto.telefonoAlterno).toBe('3109998877');
+  });
+
+  // Defecto 6: al editar, si llegan los dos iguales, el DTO ya lo rechaza.
+  it('editar enviando los dos teléfonos iguales: rechazado', async () => {
+    // Arrange
+    const cuerpo = { telefono: '3001234567', telefonoAlterno: '3001234567' };
+
+    // Act
+    const { mensajes } = await procesar(ActualizarClienteDto, cuerpo);
+
+    // Assert
+    expect(mensajes).toEqual([MENSAJE_ALTERNO_IGUAL]);
   });
 
   // SWR-CLI-001: nombre y teléfono obligatorios.
@@ -140,4 +184,29 @@ describe('DTO de clientes y equipos', () => {
     expect(r2.dto.marca).toBe('LG');
     expect(r3.dto.marca).toBe('Électrolux');
   });
+
+  // Defecto 7: nombreBusqueda lo llena la base; si el navegador lo envía,
+  // se rechaza (main.ts usa forbidNonWhitelisted).
+  it.each([
+    ['crear', CrearClienteDto, clienteValido],
+    ['editar', ActualizarClienteDto, { nombre: 'Ana Gómez' }],
+  ] as const)(
+    '%s con nombreBusqueda: rechazado',
+    async (_caso, clase, cuerpo) => {
+      // Arrange
+      const dto = plainToInstance(clase as new () => object, {
+        ...cuerpo,
+        nombreBusqueda: 'otra cosa',
+      });
+
+      // Act
+      const errores = await validate(dto, {
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      });
+
+      // Assert
+      expect(errores.map((e) => e.property)).toEqual(['nombreBusqueda']);
+    },
+  );
 });

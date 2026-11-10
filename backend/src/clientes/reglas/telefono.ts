@@ -47,6 +47,28 @@ export function validarTelefono(valor: unknown): ResultadoTelefono {
   return { valido: true, telefono: limpio };
 }
 
+// ---------- Teléfono alterno (defecto 6) ----------
+
+export const MENSAJE_ALTERNO_IGUAL =
+  'El teléfono alterno debe ser diferente al principal';
+
+// true si el alterno, ya normalizado, es el mismo número que el principal.
+// Un alterno vacío o ausente nunca es "igual" (es opcional).
+export function alternoIgualAlPrincipal(
+  principal: unknown,
+  alterno: unknown,
+): boolean {
+  // Camino 1: falta alguno de los dos (o no es texto).
+  if (typeof principal !== 'string' || typeof alterno !== 'string') {
+    return false;
+  }
+  // Camino 2: alterno vacío tras normalizar.
+  const alternoLimpio = normalizarTelefono(alterno);
+  if (alternoLimpio === '') return false;
+  // Camino 3: comparar ya normalizados (AJ-08).
+  return alternoLimpio === normalizarTelefono(principal);
+}
+
 function invalido(motivo: MotivoTelefonoInvalido): ResultadoTelefono {
   return { valido: false, motivo, mensaje: MENSAJES_TELEFONO[motivo] };
 }

@@ -399,4 +399,28 @@ describe('InventarioService (Prisma simulado)', () => {
     expect(pagina.total).toBe(1);
     expect(pagina.datos[0].stockBajo).toBe(true);
   });
+
+  // Defecto 7: "desague" encuentra "Bomba de desagüe" (nombreBusqueda =
+  // "bomba de desague"); la referencia sigue con ILIKE (es un código).
+  it('buscar "Desagüe": nombre sin tildes y referencia sin distinguir mayúsculas', async () => {
+    // Arrange
+    prisma.repuesto.findMany.mockResolvedValue([]);
+    prisma.repuesto.count.mockResolvedValue(0);
+
+    // Act
+    await servicio.buscar({ buscar: 'Desagüe' });
+
+    // Assert
+    expect(prisma.repuesto.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          activo: true,
+          OR: [
+            { nombreBusqueda: { contains: 'desague' } },
+            { referencia: { contains: 'Desagüe', mode: 'insensitive' } },
+          ],
+        },
+      }),
+    );
+  });
 });
