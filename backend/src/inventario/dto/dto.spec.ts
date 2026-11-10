@@ -154,4 +154,23 @@ describe('DTO de inventario', () => {
     expect(dto.soloStockBajo).toBe(true);
     expect(dto.tipoEquipoId).toBe(2);
   });
+
+  // Defecto 7: nombreBusqueda lo llena la base; si el navegador lo envía,
+  // se rechaza (forbidNonWhitelisted, igual que main.ts).
+  it.each([
+    ['crear', CrearRepuestoDto, repuestoValido],
+    ['editar', ActualizarRepuestoDto, { nombre: 'Tarjeta principal' }],
+  ] as const)(
+    '%s con nombreBusqueda: rechazado',
+    async (_caso, clase, cuerpo) => {
+      // Act
+      const { campos } = await procesar(clase as new () => object, {
+        ...cuerpo,
+        nombreBusqueda: 'otra cosa',
+      });
+
+      // Assert
+      expect(campos).toEqual(['nombreBusqueda']);
+    },
+  );
 });

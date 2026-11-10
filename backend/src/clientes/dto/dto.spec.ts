@@ -184,4 +184,29 @@ describe('DTO de clientes y equipos', () => {
     expect(r2.dto.marca).toBe('LG');
     expect(r3.dto.marca).toBe('Électrolux');
   });
+
+  // Defecto 7: nombreBusqueda lo llena la base; si el navegador lo envía,
+  // se rechaza (main.ts usa forbidNonWhitelisted).
+  it.each([
+    ['crear', CrearClienteDto, clienteValido],
+    ['editar', ActualizarClienteDto, { nombre: 'Ana Gómez' }],
+  ] as const)(
+    '%s con nombreBusqueda: rechazado',
+    async (_caso, clase, cuerpo) => {
+      // Arrange
+      const dto = plainToInstance(clase as new () => object, {
+        ...cuerpo,
+        nombreBusqueda: 'otra cosa',
+      });
+
+      // Act
+      const errores = await validate(dto, {
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      });
+
+      // Assert
+      expect(errores.map((e) => e.property)).toEqual(['nombreBusqueda']);
+    },
+  );
 });

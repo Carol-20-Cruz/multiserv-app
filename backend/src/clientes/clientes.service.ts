@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { textoBusqueda } from '../comun/texto-busqueda';
 import { ErrorValidacion } from '../logging/error-validacion';
 import { JsonLogger } from '../logging/json-logger';
 import { PrismaService } from '../prisma/prisma.service';
@@ -49,14 +50,17 @@ export class ClientesService {
   constructor(private readonly prisma: PrismaService) {}
 
   // Listar y buscar por nombre o teléfono (solo clientes activos).
+  // Defecto 7: el nombre se busca sin tildes ni mayúsculas en
+  // "nombreBusqueda" (la llena un trigger de la base).
   async buscar({ buscar, pagina = 1 }: BuscarClientesDto) {
     const digitos = buscar?.replace(/\D/g, '') ?? '';
+    const nombre = buscar ? textoBusqueda(buscar) : '';
     const where = {
       activo: true,
       ...(buscar
         ? {
             OR: [
-              { nombre: { contains: buscar, mode: 'insensitive' as const } },
+              ...(nombre ? [{ nombreBusqueda: { contains: nombre } }] : []),
               ...(digitos ? [{ telefono: { contains: digitos } }] : []),
             ],
           }
@@ -147,6 +151,7 @@ export class ClientesService {
   async obtener(id: number) {
     const cliente = await this.prisma.cliente.findUnique({
       where: { id },
+      omit: { nombreBusqueda: true }, // dato interno de la búsqueda
       include: {
         equipos: {
           where: { activo: true },

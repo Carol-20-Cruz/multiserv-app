@@ -696,4 +696,54 @@ describe('OrdenesService (Prisma simulado)', () => {
       response: { motivo: 'ENTREGA_POR_OTRA_RUTA' },
     });
   });
+
+  // ---------- Defecto 7: buscar sin tildes ----------
+
+  // Defecto 7: "Ortíz" en órdenes busca el nombre del cliente sin tildes;
+  // el número de orden sigue sin distinguir mayúsculas.
+  it('buscar "Ortíz": número, y cliente por nombreBusqueda normalizado', async () => {
+    // Arrange
+    prisma.ordenServicio.findMany.mockResolvedValue([]);
+    prisma.ordenServicio.count.mockResolvedValue(0);
+
+    // Act
+    await servicio.buscar({
+      buscar: 'Ortíz',
+      estado: EstadoOrden.EN_DIAGNOSTICO,
+    });
+
+    // Assert
+    expect(prisma.ordenServicio.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          estado: EstadoOrden.EN_DIAGNOSTICO,
+          OR: [
+            { numero: { contains: 'Ortíz', mode: 'insensitive' } },
+            { cliente: { nombreBusqueda: { contains: 'ortiz' } } },
+          ],
+        },
+      }),
+    );
+  });
+
+  // Por número de orden: el texto también se busca como nombre y, como
+  // tiene dígitos, como teléfono (igual que antes del defecto 7).
+  it('buscar "MS-2026-00002": incluye número, nombre y teléfono', async () => {
+    // Arrange
+    prisma.ordenServicio.findMany.mockResolvedValue([]);
+    prisma.ordenServicio.count.mockResolvedValue(0);
+
+    // Act
+    await servicio.buscar({ buscar: 'MS-2026-00002' });
+
+    // Assert
+    const { where } = prisma.ordenServicio.findMany.mock.calls[0][0] as {
+      where: { OR: unknown[] };
+    };
+    expect(where.OR).toEqual([
+      { numero: { contains: 'MS-2026-00002', mode: 'insensitive' } },
+      { cliente: { nombreBusqueda: { contains: 'ms-2026-00002' } } },
+      { cliente: { telefono: { contains: '202600002' } } },
+    ]);
+  });
 });

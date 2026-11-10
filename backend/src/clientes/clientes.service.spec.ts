@@ -13,6 +13,8 @@ function crearPrismaFalso() {
   return {
     cliente: {
       findUnique: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
     },
@@ -301,5 +303,61 @@ describe('ClientesService (Prisma simulado)', () => {
       event: 'EQUIPMENT_ADDED',
       metadata: { equipoId: 15, clienteId: 42, userId: USER_ID },
     });
+  });
+
+  // ---------- Defecto 7: buscar sin tildes ----------
+
+  // Defecto 7: "Maria Fernanda" busca en nombreBusqueda ya normalizado
+  // (la base guarda "maria fernanda ortiz" para "María Fernanda Ortiz").
+  it('buscar "Maria Fernanda": usa nombreBusqueda normalizado', async () => {
+    // Arrange
+    prisma.cliente.findMany.mockResolvedValue([]);
+    prisma.cliente.count.mockResolvedValue(0);
+
+    // Act
+    await servicio.buscar({ buscar: 'MARÍA  Fernanda' });
+
+    // Assert
+    expect(prisma.cliente.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          activo: true,
+          OR: [{ nombreBusqueda: { contains: 'maria fernanda' } }],
+        },
+      }),
+    );
+  });
+
+  // El teléfono se sigue buscando por sus dígitos.
+  it('buscar "300 123": nombre normalizado y teléfono por dígitos', async () => {
+    // Arrange
+    prisma.cliente.findMany.mockResolvedValue([]);
+    prisma.cliente.count.mockResolvedValue(0);
+
+    // Act
+    await servicio.buscar({ buscar: '300 123' });
+
+    // Assert
+    const { where } = prisma.cliente.findMany.mock.calls[0][0] as {
+      where: { OR: unknown[] };
+    };
+    expect(where.OR).toEqual([
+      { nombreBusqueda: { contains: '300 123' } },
+      { telefono: { contains: '300123' } },
+    ]);
+  });
+
+  // nombreBusqueda es un dato interno: el detalle no lo devuelve.
+  it('detalle del cliente: omite nombreBusqueda', async () => {
+    // Arrange
+    prisma.cliente.findUnique.mockResolvedValue({ ...existente, equipos: [] });
+
+    // Act
+    await servicio.obtener(42);
+
+    // Assert
+    expect(prisma.cliente.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ omit: { nombreBusqueda: true } }),
+    );
   });
 });

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { EstadoOrden, Modalidad } from '../generated/prisma/enums';
+import { textoBusqueda } from '../comun/texto-busqueda';
 import { ErrorValidacion } from '../logging/error-validacion';
 import { JsonLogger } from '../logging/json-logger';
 import { PrismaService } from '../prisma/prisma.service';
@@ -126,17 +127,19 @@ export class OrdenesService {
 
   // Lista paginada, las más nuevas primero. Busca por número de orden,
   // nombre o teléfono del cliente; filtra por estado.
+  // Defecto 7: el nombre del cliente se busca sin tildes ni mayúsculas.
   async buscar({ buscar, estado, pagina = 1 }: BuscarOrdenesDto) {
     const digitos = buscar?.replace(/\D/g, '') ?? '';
+    const nombre = buscar ? textoBusqueda(buscar) : '';
     const where: Prisma.OrdenServicioWhereInput = {
       ...(estado ? { estado } : {}),
       ...(buscar
         ? {
             OR: [
               { numero: { contains: buscar, mode: 'insensitive' } },
-              {
-                cliente: { nombre: { contains: buscar, mode: 'insensitive' } },
-              },
+              ...(nombre
+                ? [{ cliente: { nombreBusqueda: { contains: nombre } } }]
+                : []),
               ...(digitos
                 ? [{ cliente: { telefono: { contains: digitos } } }]
                 : []),
