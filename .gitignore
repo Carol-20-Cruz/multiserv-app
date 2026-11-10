@@ -38,3 +38,7 @@ frontend/next-env.d.ts
 *.tsbuildinfo
 .vercel/
 *.pem
+
+# Archivos que genera next dev para asistentes de IA
+frontend/AGENTS.md
+frontend/CLAUDE.md
