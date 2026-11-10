@@ -260,4 +260,43 @@ describe("Formulario de cliente", () => {
       fetchFalso.mock.calls.filter(([, init]) => init?.method === "PATCH"),
     ).toHaveLength(0);
   });
+
+  // Verificación (doble clic): mientras se envía y después del éxito (la
+  // navegación tarda), "Registrar cliente" queda deshabilitado: un segundo
+  // clic no envía otro POST.
+  it("doble clic en Registrar cliente: se envía una sola vez", async () => {
+    // Arrange: el backend tarda en responder hasta que lo liberamos.
+    let liberar!: () => void;
+    fetchFalso.mockImplementationOnce(
+      () =>
+        new Promise<Response>((ok) => {
+          liberar = () =>
+            ok(new Response(JSON.stringify({ id: 99 }), { status: 201 }));
+        }),
+    );
+    const { user, nombre, telefono, autorizacion, registrar } = dibujar();
+    await user.type(nombre, "Ana Gómez");
+    await user.type(telefono, "3001234567");
+    await user.click(autorizacion);
+    // La verificación del teléfono (al salir del campo) ya respondió.
+    fetchFalso.mockClear();
+
+    // Act
+    await user.click(registrar);
+    await user.click(registrar);
+
+    // Assert 1: mientras se envía.
+    expect(registrar).toBeDisabled();
+    expect(registrar).toHaveTextContent("Guardando...");
+    expect(llamadasPost()).toHaveLength(1);
+
+    // Act 2: el backend responde; la página aún no cambia.
+    liberar();
+    await screen.findByRole("status");
+    await user.click(registrar);
+
+    // Assert 2
+    expect(registrar).toBeDisabled();
+    expect(llamadasPost()).toHaveLength(1);
+  });
 });

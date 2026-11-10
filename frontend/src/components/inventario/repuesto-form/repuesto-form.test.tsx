@@ -193,4 +193,40 @@ describe("Formulario de repuesto", () => {
     expect(referencia).toHaveAttribute("aria-invalid", "true");
     expect(router.push).not.toHaveBeenCalled();
   });
+
+  // Verificación (doble clic): mientras se envía y después del éxito (la
+  // navegación tarda), el botón queda deshabilitado: un segundo clic no
+  // envía otra vez. (Es el mismo botón que "Registrar repuesto"; se prueba
+  // al editar porque el formulario ya viene completo.)
+  it("doble clic en Guardar cambios: se envía una sola vez", async () => {
+    // Arrange: el backend tarda en responder hasta que lo liberamos.
+    let liberar!: () => void;
+    fetchFalso.mockImplementationOnce(
+      () =>
+        new Promise<Response>((ok) => {
+          liberar = () =>
+            ok(new Response(JSON.stringify(repuestoGuardado), { status: 200 }));
+        }),
+    );
+    const { user } = dibujar(repuestoGuardado);
+    const guardar = screen.getByRole("button", { name: "Guardar cambios" });
+
+    // Act
+    await user.click(guardar);
+    await user.click(guardar);
+
+    // Assert 1: mientras se envía.
+    expect(guardar).toBeDisabled();
+    expect(guardar).toHaveTextContent("Guardando...");
+    expect(fetchFalso).toHaveBeenCalledTimes(1);
+
+    // Act 2: el backend responde; la página aún no cambia.
+    liberar();
+    await vi.waitFor(() => expect(router.push).toHaveBeenCalledTimes(1));
+    await user.click(guardar);
+
+    // Assert 2
+    expect(guardar).toBeDisabled();
+    expect(fetchFalso).toHaveBeenCalledTimes(1);
+  });
 });
