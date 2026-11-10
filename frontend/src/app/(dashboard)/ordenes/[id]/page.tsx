@@ -2,6 +2,7 @@ import MensajeExito from "@/components/clientes/mensaje-exito";
 import ComponentCard from "@/components/common/component-card";
 import PageBreadcrumb from "@/components/common/page-breadcrumb";
 import AvanzarEstado from "@/components/ordenes/avanzar-estado";
+import CuentaOrden from "@/components/ordenes/cuenta-orden";
 import DetalleOrden from "@/components/ordenes/detalle-orden";
 import LineaTiempo from "@/components/ordenes/linea-tiempo";
 import RegistrarCotizacion from "@/components/ordenes/registrar-cotizacion";
@@ -25,11 +26,13 @@ interface DetallePageProps {
     actualizada?: string;
     cotizacion?: string;
     estado?: string;
+    pago?: string;
   }>;
 }
 
 // El aviso de la última acción (MensajeExito reemplaza al anterior).
 function mensajeDeAviso(aviso: Awaited<DetallePageProps["searchParams"]>) {
+  if (aviso.pago) return "Pago registrado correctamente.";
   if (aviso.estado) return "Estado actualizado correctamente.";
   if (aviso.cotizacion) return "Cotización guardada correctamente.";
   if (aviso.actualizada) return "Orden actualizada correctamente.";
@@ -38,7 +41,7 @@ function mensajeDeAviso(aviso: Awaited<DetallePageProps["searchParams"]>) {
 }
 
 // Detalle de la orden: recepción, cotización aprobada, cambio de estado e
-// historial (SWR-ORD-001, SWR-ORD-011, SWR-PAY-004).
+// historial, cuenta y pagos (SWR-ORD-001, SWR-ORD-011, SWR-PAY-004).
 export default async function DetalleOrdenPage({
   params,
   searchParams,
@@ -61,10 +64,6 @@ export default async function DetalleOrdenPage({
     [
       `Abono mínimo (${orden.porcentajeAbono} %)`,
       orden.abonoMinimo === null ? "—" : formatearPesos(orden.abonoMinimo),
-    ],
-    [
-      "Pagado",
-      `${formatearPesos(orden.totalPagado)} (${orden.cantidadPagos} pago(s))`,
     ],
   ];
 
@@ -139,6 +138,22 @@ export default async function DetalleOrdenPage({
           </ComponentCard>
 
           <ComponentCard
+            title="Cuenta"
+            desc="Los pagos se descuentan del valor aprobado y nunca lo superan."
+          >
+            <CuentaOrden
+              id={orden.id}
+              estado={orden.estado}
+              valorCotizado={orden.valorCotizado}
+              totalPagado={orden.totalPagado}
+              saldo={orden.saldo}
+              abonoMinimo={orden.abonoMinimo}
+              pagos={orden.pagos}
+            />
+          </ComponentCard>
+
+          <ComponentCard
+            className="xl:col-span-2"
             title="Estado de la orden"
             desc="Los estados avanzan en orden y quedan en el historial."
           >
