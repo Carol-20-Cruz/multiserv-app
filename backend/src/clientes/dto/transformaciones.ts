@@ -4,7 +4,28 @@ import {
   ValidateIf,
   type ValidationOptions,
 } from 'class-validator';
-import { normalizarTelefono, validarTelefono } from '../reglas/telefono';
+import {
+  alternoIgualAlPrincipal,
+  MENSAJE_ALTERNO_IGUAL,
+  normalizarTelefono,
+  validarTelefono,
+} from '../reglas/telefono';
+
+// Defecto 6: el teléfono alterno no puede ser el mismo número que el
+// principal (comparados ya normalizados). Solo revisa cuando llegan los dos
+// en el mismo cuerpo; al editar, el servicio compara con lo guardado.
+export const AlternoDistinto = () =>
+  ValidateBy({
+    name: 'alternoDistinto',
+    validator: {
+      validate: (alterno: unknown, args) =>
+        !alternoIgualAlPrincipal(
+          (args?.object as { telefono?: unknown }).telefono,
+          alterno,
+        ),
+      defaultMessage: () => MENSAJE_ALTERNO_IGUAL,
+    },
+  });
 
 // Texto obligatorio: quita espacios de los extremos y deja uno solo entre
 // palabras ("  Juan   Pérez " -> "Juan Pérez").

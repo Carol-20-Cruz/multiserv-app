@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MENSAJE_ALTERNO_IGUAL } from "@/lib/telefono";
+import type { ClienteDetalle } from "@/lib/tipos-clientes";
 import ClienteForm from ".";
 import { MENSAJE_AUTORIZACION } from "./schema";
 
@@ -202,5 +204,60 @@ describe("Formulario de cliente", () => {
       autorizaDatos: true,
     });
     expect(router.push).toHaveBeenCalledWith("/clientes/99?registrado=1");
+  });
+
+  // Defecto 6: al crear, el alterno igual al principal (con otro formato)
+  // se rechaza y no se envía.
+  it("alterno igual al principal: muestra el error y no envía", async () => {
+    // Arrange
+    const { user, nombre, telefono, autorizacion, registrar } = dibujar();
+    await user.type(nombre, "Ana Gómez");
+    await user.type(telefono, "300 123 4567");
+    await user.type(screen.getByLabelText("Teléfono alterno"), "300-123-4567");
+    await user.click(autorizacion);
+
+    // Act
+    await user.click(registrar);
+
+    // Assert
+    expect(await screen.findByText(MENSAJE_ALTERNO_IGUAL)).toBeVisible();
+    expect(screen.getByLabelText("Teléfono alterno")).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    expect(llamadasPost()).toHaveLength(0);
+  });
+
+  // Defecto 6: al editar, poner en el alterno el mismo número del principal
+  // también se rechaza y no se envía el PATCH.
+  it("editar con el alterno igual al principal: muestra el error y no envía", async () => {
+    // Arrange
+    const cliente: ClienteDetalle = {
+      id: 5,
+      nombre: "Ana Gómez",
+      telefono: "3001234567",
+      telefonoAlterno: null,
+      correo: null,
+      direccion: null,
+      barrio: null,
+      ciudad: "Neiva",
+      activo: true,
+      autorizaDatos: true,
+      fechaAutorizacion: "2026-11-09T15:00:00.000Z",
+      creadoEn: "2026-11-09T15:00:00.000Z",
+      equipos: [],
+    };
+    const user = userEvent.setup();
+    render(<ClienteForm cliente={cliente} />);
+
+    // Act
+    await user.type(screen.getByLabelText("Teléfono alterno"), "3001234567");
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    // Assert
+    expect(await screen.findByText(MENSAJE_ALTERNO_IGUAL)).toBeVisible();
+    expect(
+      fetchFalso.mock.calls.filter(([, init]) => init?.method === "PATCH"),
+    ).toHaveLength(0);
   });
 });

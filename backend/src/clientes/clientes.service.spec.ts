@@ -5,6 +5,7 @@ import {
   MENSAJE_TELEFONO_DUPLICADO,
 } from './clientes.service';
 import type { CrearClienteDto } from './dto/crear-cliente.dto';
+import { MENSAJE_ALTERNO_IGUAL } from './reglas/telefono';
 
 // Prisma simulado (mock): un "actor" que hace de base de datos, para probar
 // las decisiones del servicio sin conectarse a Supabase.
@@ -192,6 +193,73 @@ describe('ClientesService (Prisma simulado)', () => {
     // Assert
     await expect(promesa).rejects.toBeInstanceOf(ConflictException);
     expect(prisma.cliente.update).not.toHaveBeenCalled();
+  });
+
+  // Defecto 6: al editar SOLO el alterno, se compara con el principal
+  // guardado: igual -> 400 en telefonoAlterno y no se actualiza.
+  it('editar solo el alterno igual al principal guardado: 400', async () => {
+    // Arrange
+    prisma.cliente.findUnique.mockResolvedValue({
+      ...existente,
+      telefonoAlterno: null,
+    });
+
+    // Act
+    const promesa = servicio.actualizar(
+      42,
+      { telefonoAlterno: '3001234567' },
+      USER_ID,
+    );
+
+    // Assert
+    const error = (await promesa.catch(
+      (e: unknown) => e,
+    )) as BadRequestException;
+    expect(error).toBeInstanceOf(BadRequestException);
+    expect(error.getResponse()).toMatchObject({
+      message: [MENSAJE_ALTERNO_IGUAL],
+    });
+    expect(prisma.cliente.update).not.toHaveBeenCalled();
+  });
+
+  // Defecto 6: al editar SOLO el principal para que quede igual al alterno
+  // guardado, también se rechaza (antes de revisar duplicados).
+  it('editar solo el principal igual al alterno guardado: 400', async () => {
+    // Arrange
+    prisma.cliente.findUnique.mockResolvedValue({
+      ...existente,
+      telefonoAlterno: '3109998877',
+    });
+
+    // Act
+    const promesa = servicio.actualizar(
+      42,
+      { telefono: '3109998877' },
+      USER_ID,
+    );
+
+    // Assert
+    await expect(promesa).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.cliente.findUnique).toHaveBeenCalledTimes(1);
+    expect(prisma.cliente.update).not.toHaveBeenCalled();
+  });
+
+  // Defecto 6: borrar el alterno (null) siempre se permite.
+  it('editar borrando el alterno: actualiza', async () => {
+    // Arrange
+    prisma.cliente.findUnique.mockResolvedValue({
+      ...existente,
+      telefonoAlterno: '3109998877',
+    });
+    prisma.cliente.update.mockResolvedValue(existente);
+
+    // Act
+    await servicio.actualizar(42, { telefonoAlterno: null }, USER_ID);
+
+    // Assert
+    expect(prisma.cliente.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { telefonoAlterno: null } }),
+    );
   });
 
   // SWR-EQP-003: no se asocian equipos con un tipo inexistente.

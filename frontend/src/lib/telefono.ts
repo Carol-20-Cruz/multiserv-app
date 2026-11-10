@@ -26,6 +26,21 @@ export function errorTelefono(valor: string): string | null {
   return null;
 }
 
+// Defecto 6: el alterno no puede ser el mismo número que el principal
+// (comparados ya normalizados). Un alterno vacío nunca es "igual".
+export const MENSAJE_ALTERNO_IGUAL =
+  "El teléfono alterno debe ser diferente al principal";
+
+export function alternoIgualAlPrincipal(
+  principal: string,
+  alterno: string,
+): boolean {
+  const alternoLimpio = normalizarTelefono(alterno);
+  return (
+    alternoLimpio !== "" && alternoLimpio === normalizarTelefono(principal)
+  );
+}
+
 // "3001234567" -> "300 123 4567" (solo para mostrar).
 export function formatearTelefono(telefono: string): string {
   return /^\d{10}$/.test(telefono)

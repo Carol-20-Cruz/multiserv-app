@@ -6,6 +6,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import {
+  AlternoDistinto,
   EsTelefono,
   SiLlega,
   TextoLimpio,
@@ -27,7 +28,10 @@ export class ActualizarClienteDto {
   @EsTelefono()
   telefono?: string;
 
+  // Defecto 6: distinto del principal. Si solo llega uno de los dos, el
+  // servicio lo compara con el que ya está guardado.
   @IsOptional()
+  @AlternoDistinto()
   @EsTelefono({
     opcional: true,
     message: 'El teléfono alterno debe tener 10 dígitos',

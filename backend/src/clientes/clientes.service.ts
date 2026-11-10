@@ -4,12 +4,17 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ErrorValidacion } from '../logging/error-validacion';
 import { JsonLogger } from '../logging/json-logger';
 import { PrismaService } from '../prisma/prisma.service';
 import { ActualizarClienteDto } from './dto/actualizar-cliente.dto';
 import { BuscarClientesDto } from './dto/buscar-clientes.dto';
 import { CrearClienteDto } from './dto/crear-cliente.dto';
 import { CrearEquipoDto } from './dto/crear-equipo.dto';
+import {
+  alternoIgualAlPrincipal,
+  MENSAJE_ALTERNO_IGUAL,
+} from './reglas/telefono';
 
 export const CLIENTES_POR_PAGINA = 10;
 export const MENSAJE_TELEFONO_DUPLICADO =
@@ -158,6 +163,17 @@ export class ClientesService {
   async actualizar(id: number, dto: ActualizarClienteDto, userId: number) {
     const actual = await this.existeOFalla(id);
 
+    // Defecto 6: se compara el resultado final (lo que llega + lo guardado),
+    // así cambiar solo uno de los dos teléfonos también se revisa.
+    const principal = dto.telefono ?? actual.telefono;
+    const alterno =
+      dto.telefonoAlterno !== undefined
+        ? dto.telefonoAlterno
+        : actual.telefonoAlterno;
+    if (alternoIgualAlPrincipal(principal, alterno)) {
+      throw new ErrorValidacion(['telefonoAlterno'], [MENSAJE_ALTERNO_IGUAL]);
+    }
+
     if (dto.telefono && dto.telefono !== actual.telefono) {
       await this.impedirDuplicado(dto.telefono, userId);
     }
@@ -234,10 +250,11 @@ export class ClientesService {
 
   // ---------- auxiliares ----------
 
+  // (Uso interno: telefonoAlterno sirve para la regla del defecto 6.)
   private async existeOFalla(id: number) {
     const cliente = await this.prisma.cliente.findUnique({
       where: { id },
-      select: SELECT_BASICO,
+      select: { ...SELECT_BASICO, telefonoAlterno: true },
     });
     if (!cliente) throw new NotFoundException('Cliente no encontrado');
     return cliente;
