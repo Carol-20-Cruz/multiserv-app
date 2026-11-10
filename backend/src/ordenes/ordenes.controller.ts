@@ -39,6 +39,13 @@ export class OrdenesController {
     return this.ordenesService.buscar(query);
   }
 
+  // Inicio (dashboard). El saldo total solo va para el Dueño.
+  // (Va antes de ':id'.)
+  @Get('resumen')
+  resumen(@Req() req: RequestConUsuario) {
+    return this.ordenesService.resumen(req.user!.rol);
+  }
+
   // Selector de responsable. (Va antes de ':id'.)
   @Get('responsables')
   responsables() {

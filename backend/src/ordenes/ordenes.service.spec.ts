@@ -32,9 +32,11 @@ function crearPrismaFalso() {
       findMany: jest.fn(),
       count: jest.fn(),
       update: jest.fn(),
+      groupBy: jest.fn(),
+      aggregate: jest.fn(),
     },
     historialEstado: { create: jest.fn() },
-    pago: { aggregate: jest.fn(), create: jest.fn() },
+    pago: { aggregate: jest.fn(), create: jest.fn(), groupBy: jest.fn() },
     $transaction: jest.fn(),
   };
   prisma.$transaction.mockImplementation((fn: (tx: typeof prisma) => unknown) =>
@@ -1140,5 +1142,94 @@ describe('OrdenesService (Prisma simulado)', () => {
       abonoMinimo: null,
       puedeEntregar: false,
     });
+  });
+  // ---------- resumen del inicio ----------
+
+  const datosResumen = () => {
+    prisma.ordenServicio.groupBy.mockResolvedValue([
+      { estado: EstadoOrden.EN_DIAGNOSTICO, _count: { _all: 2 } },
+      { estado: EstadoOrden.LISTO_PARA_ENTREGA, _count: { _all: 1 } },
+      { estado: EstadoOrden.ENTREGADO, _count: { _all: 4 } },
+    ]);
+    prisma.ordenServicio.findMany.mockImplementation(
+      ({ select }: { select: Record<string, unknown> }) =>
+        Promise.resolve([
+          {
+            id: 7,
+            numero: 'MS-2026-00007',
+            estado: EstadoOrden.EN_DIAGNOSTICO,
+            ...('valorCotizado' in select ? { valorCotizado: null } : {}),
+          },
+          {
+            id: 2,
+            numero: 'MS-2026-00002',
+            estado: EstadoOrden.LISTO_PARA_ENTREGA,
+            ...('valorCotizado' in select ? { valorCotizado: 250000 } : {}),
+          },
+        ]),
+    );
+    prisma.ordenServicio.aggregate.mockResolvedValue({
+      _sum: { valorCotizado: 430000 },
+    });
+    prisma.pago.aggregate.mockResolvedValue({ _sum: { valor: 215000 } });
+    prisma.pago.groupBy.mockResolvedValue([
+      { ordenId: 2, _sum: { valor: 125000 } },
+    ]);
+  };
+
+  it('resumen del Dueño: conteo con ceros, saldo total y saldo por orden', async () => {
+    // Arrange
+    datosResumen();
+
+    // Act
+    const resumen = await servicio.resumen('DUENO');
+
+    // Assert
+    expect(resumen).toEqual({
+      porEstado: {
+        RECIBIDO: 0,
+        EN_DIAGNOSTICO: 2,
+        EN_REPARACION: 0,
+        LISTO_PARA_ENTREGA: 1,
+        ENTREGADO: 4,
+      },
+      total: 7,
+      saldoPendienteTotal: 215000,
+      recientes: [
+        expect.objectContaining({ id: 7, saldo: null }),
+        expect.objectContaining({ id: 2, saldo: 125000 }),
+      ],
+    });
+    // Saldo total solo de órdenes NO entregadas.
+    expect(prisma.ordenServicio.aggregate).toHaveBeenCalledWith({
+      where: { estado: { not: EstadoOrden.ENTREGADO } },
+      _sum: { valorCotizado: true },
+    });
+    expect(prisma.pago.aggregate).toHaveBeenCalledWith({
+      where: { orden: { estado: { not: EstadoOrden.ENTREGADO } } },
+      _sum: { valor: true },
+    });
+    // Las 5 creadas más recientemente.
+    expect(prisma.ordenServicio.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { creadoEn: 'desc' }, take: 5 }),
+    );
+  });
+
+  it('resumen del Técnico: sin saldo total ni saldos, ni consulta montos', async () => {
+    // Arrange
+    datosResumen();
+
+    // Act
+    const resumen = await servicio.resumen('TECNICO');
+
+    // Assert
+    expect(resumen).not.toHaveProperty('saldoPendienteTotal');
+    expect(resumen.total).toBe(7);
+    for (const orden of resumen.recientes) {
+      expect(orden).not.toHaveProperty('saldo');
+      expect(orden).not.toHaveProperty('valorCotizado');
+    }
+    expect(prisma.ordenServicio.aggregate).not.toHaveBeenCalled();
+    expect(prisma.pago.aggregate).not.toHaveBeenCalled();
   });
 });

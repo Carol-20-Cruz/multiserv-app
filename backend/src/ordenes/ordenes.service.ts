@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
-import { EstadoOrden, Modalidad } from '../generated/prisma/enums';
+import { EstadoOrden, Modalidad, Rol } from '../generated/prisma/enums';
 import { textoBusqueda } from '../comun/texto-busqueda';
 import { ErrorValidacion } from '../logging/error-validacion';
 import { JsonLogger } from '../logging/json-logger';
@@ -70,6 +70,9 @@ export const MENSAJE_ORDEN_ENTREGADA_NO_EDITA =
 // Pesos colombianos sin decimales: 125000 -> "$ 125.000".
 export const formatearPesos = (valor: number) =>
   `$ ${valor.toLocaleString('es-CO', { maximumFractionDigits: 0 })}`;
+
+// Órdenes recientes del inicio: las 5 creadas más recientemente.
+export const ORDENES_RECIENTES = 5;
 
 // SWR-ENT-003: por qué no se puede entregar (respuesta 409).
 export const MENSAJES_ENTREGA = {
@@ -199,6 +202,82 @@ export class OrdenesService {
     ]);
 
     return { datos, total, pagina, porPagina: ORDENES_POR_PAGINA };
+  }
+
+  // Inicio (dashboard): conteo por estado, las 5 órdenes más recientes y,
+  // SOLO para el Dueño, el saldo pendiente total de las órdenes no
+  // entregadas y el saldo de cada orden reciente. Al Técnico no se le
+  // envían esos montos (no basta con ocultarlos en la pantalla).
+  async resumen(rol: Rol) {
+    const esDueno = rol === Rol.DUENO;
+    const noEntregadas = { estado: { not: EstadoOrden.ENTREGADO } };
+
+    const [grupos, recientes] = await Promise.all([
+      this.prisma.ordenServicio.groupBy({
+        by: ['estado'],
+        _count: { _all: true },
+      }),
+      this.prisma.ordenServicio.findMany({
+        orderBy: { creadoEn: 'desc' },
+        take: ORDENES_RECIENTES,
+        select: {
+          id: true,
+          numero: true,
+          estado: true,
+          creadoEn: true,
+          cliente: { select: { id: true, nombre: true } },
+          equipo: {
+            select: {
+              marca: true,
+              referencia: true,
+              tipoEquipo: { select: { nombre: true } },
+            },
+          },
+          ...(esDueno ? { valorCotizado: true } : {}),
+        },
+      }),
+    ]);
+
+    // Todos los estados, aunque tengan 0 órdenes.
+    const porEstado = Object.fromEntries(
+      Object.values(EstadoOrden).map((e) => [e, 0]),
+    ) as Record<EstadoOrden, number>;
+    for (const g of grupos) porEstado[g.estado] = g._count._all;
+    const total = Object.values(porEstado).reduce((a, b) => a + b, 0);
+
+    if (!esDueno) return { porEstado, total, recientes };
+
+    const [cotizado, pagado, pagosRecientes] = await Promise.all([
+      this.prisma.ordenServicio.aggregate({
+        where: noEntregadas,
+        _sum: { valorCotizado: true },
+      }),
+      this.prisma.pago.aggregate({
+        where: { orden: noEntregadas },
+        _sum: { valor: true },
+      }),
+      this.prisma.pago.groupBy({
+        by: ['ordenId'],
+        where: { ordenId: { in: recientes.map((o) => o.id) } },
+        _sum: { valor: true },
+      }),
+    ]);
+    const pagadoPorOrden = new Map(
+      pagosRecientes.map((p) => [p.ordenId, p._sum.valor ?? 0]),
+    );
+
+    return {
+      porEstado,
+      total,
+      saldoPendienteTotal:
+        (cotizado._sum.valorCotizado ?? 0) - (pagado._sum.valor ?? 0),
+      recientes: recientes.map(({ valorCotizado, ...orden }) => ({
+        ...orden,
+        saldo: calcularSaldo(valorCotizado ?? null, [
+          pagadoPorOrden.get(orden.id) ?? 0,
+        ]),
+      })),
+    };
   }
 
   // Usuarios activos que pueden ser responsables (selector del formulario).
