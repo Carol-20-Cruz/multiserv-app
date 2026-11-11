@@ -5,13 +5,14 @@ import { ActualizarClienteDto } from './actualizar-cliente.dto';
 import { CrearClienteDto } from './crear-cliente.dto';
 import { CrearEquipoDto } from './crear-equipo.dto';
 import { MENSAJE_ALTERNO_IGUAL } from '../reglas/telefono';
+import { alternoDistintoValido } from './transformaciones';
 
 // Simula lo que hace el ValidationPipe global: transformar y validar.
 async function procesar<T extends object>(clase: new () => T, cuerpo: object) {
   const dto = plainToInstance(clase, cuerpo);
   const errores = await validate(dto, {
     whitelist: true,
-    stopAtFirstError: true, // igual que el ValidationPipe de main.ts
+    stopAtFirstError: true, // igual que el ValidationPipe de configurar-app.ts
   });
   const mensajes = errores.flatMap((e) => Object.values(e.constraints ?? {}));
   return { dto, campos: errores.map((e) => e.property), mensajes };
@@ -209,4 +210,30 @@ describe('DTO de clientes y equipos', () => {
       expect(errores.map((e) => e.property)).toEqual(['nombreBusqueda']);
     },
   );
+
+  // HAE-03: el validador del alterno no lanza TypeError si no recibe args.
+  it('alternoDistintoValido sin args acepta el alterno en vez de lanzar error', () => {
+    // Arrange
+    const alterno = '3001234567';
+
+    // Act
+    const resultado = () => alternoDistintoValido(alterno, undefined);
+
+    // Assert
+    expect(resultado).not.toThrow();
+    expect(resultado()).toBe(true);
+  });
+
+  it('alternoDistintoValido con args rechaza el alterno igual al principal', () => {
+    // Arrange
+    const args = {
+      object: { telefono: '300 123 4567' },
+    } as Parameters<typeof alternoDistintoValido>[1];
+
+    // Act
+    const resultado = alternoDistintoValido('3001234567', args);
+
+    // Assert
+    expect(resultado).toBe(false);
+  });
 });

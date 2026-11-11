@@ -1,9 +1,7 @@
 import 'dotenv/config';
-import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { AllExceptionsFilter } from './logging/all-exceptions.filter';
-import { crearErrorValidacion } from './logging/error-validacion';
+import { configurarApp } from './configurar-app';
 import { JsonLogger } from './logging/json-logger';
 
 const logger = new JsonLogger('Bootstrap');
@@ -13,22 +11,8 @@ async function bootstrap() {
     logger: new JsonLogger('Nest'),
   });
 
-  // Frontend Next.js en desarrollo.
-  app.enableCors({ origin: 'http://localhost:3000' });
-
-  // Valida los DTO y rechaza campos que no estén declarados.
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      // Un solo mensaje por campo (el primero que falle), no varios repetidos.
-      stopAtFirstError: true,
-      // Registra VALIDATION_FAILED con los nombres de los campos (sin valores).
-      exceptionFactory: crearErrorValidacion,
-    }),
-  );
-  app.useGlobalFilters(new AllExceptionsFilter());
+  // CORS, validación de DTO y filtro de errores (los mismos de las e2e).
+  configurarApp(app);
 
   const port = Number(process.env.PORT ?? 3001);
   await app.listen(port);

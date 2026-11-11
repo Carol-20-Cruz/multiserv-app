@@ -83,6 +83,30 @@ export interface Bloqueo {
   mensaje: string;
 }
 
+// SWR-PAY-004: pagos de la orden. El tipo lo decide el backend.
+export type MedioPago = "EFECTIVO" | "TRANSFERENCIA";
+export type TipoPago = "ABONO" | "SALDO";
+
+export const ETIQUETA_MEDIO: Record<MedioPago, string> = {
+  EFECTIVO: "Efectivo",
+  TRANSFERENCIA: "Transferencia",
+};
+
+export const ETIQUETA_TIPO_PAGO: Record<TipoPago, string> = {
+  ABONO: "Abono",
+  SALDO: "Saldo",
+};
+
+export interface Pago {
+  id: number;
+  tipo: TipoPago;
+  medio: MedioPago;
+  valor: number;
+  referencia: string | null;
+  fecha: string;
+  usuario: { nombre: string };
+}
+
 export interface OrdenDetalle extends Omit<OrdenListado, "cliente" | "equipo"> {
   cliente: { id: number; nombre: string; telefono: string; activo: boolean };
   equipo: OrdenListado["equipo"] & { serial: string | null };
@@ -106,4 +130,34 @@ export interface OrdenDetalle extends Omit<OrdenListado, "cliente" | "equipo"> {
   bloqueoSiguiente: Bloqueo | null;
   puedeCotizar: boolean;
   bloqueoCotizacion: Bloqueo | null;
+  // SWR-PAY-004 / SWR-ENT-003.
+  pagos: Pago[];
+  saldo: number | null; // null = sin cotización
+  puedeEntregar: boolean;
+  fechaEntrega: string | null;
+  recibidoPorNombre: string | null;
+  fechaVencGarantia: string | null;
+  entregadoPor: { id: number; nombre: string } | null;
+}
+
+// GET /ordenes/resumen (Inicio). Los montos solo llegan para el Dueño.
+export interface OrdenReciente {
+  id: number;
+  numero: string;
+  estado: EstadoOrden;
+  creadoEn: string;
+  cliente: { id: number; nombre: string };
+  equipo: {
+    marca: string;
+    referencia: string | null;
+    tipoEquipo: { nombre: string };
+  };
+  saldo?: number | null;
+}
+
+export interface ResumenOrdenes {
+  porEstado: Record<EstadoOrden, number>;
+  total: number;
+  saldoPendienteTotal?: number;
+  recientes: OrdenReciente[];
 }

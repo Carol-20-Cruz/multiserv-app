@@ -38,3 +38,16 @@ export function mensajeDeError(cuerpo: unknown, porDefecto: string): string {
   if (Array.isArray(message)) return message[0] ?? porDefecto;
   return message || porDefecto;
 }
+
+// Defecto 10: mensaje para un error al guardar. Las reglas de negocio
+// (400, 409...) traen su propio mensaje y se muestran tal cual. Un error
+// inesperado (5xx, o una respuesta sin "message", como la página 404 en
+// HTML de Next) muestra un texto amigable, sin detalles técnicos.
+export function mensajeAlGuardar(
+  res: RespuestaApi,
+  accion: string, // "registrar el pago"
+): string {
+  const inesperado = `Ocurrió un error al ${accion}. Intenta de nuevo y, si se repite, avisa al administrador.`;
+  if (res.status >= 500) return inesperado;
+  return mensajeDeError(res.cuerpo, inesperado);
+}

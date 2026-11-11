@@ -2,6 +2,7 @@ import { Transform } from 'class-transformer';
 import {
   ValidateBy,
   ValidateIf,
+  type ValidationArguments,
   type ValidationOptions,
 } from 'class-validator';
 import {
@@ -14,15 +15,22 @@ import {
 // Defecto 6: el teléfono alterno no puede ser el mismo número que el
 // principal (comparados ya normalizados). Solo revisa cuando llegan los dos
 // en el mismo cuerpo; al editar, el servicio compara con lo guardado.
+// HAE-03: si class-validator no entrega args, no hay principal con qué
+// comparar y el alterno se acepta (antes "args?.object.telefono" lanzaba
+// TypeError en ese caso).
+export function alternoDistintoValido(
+  alterno: unknown,
+  args?: ValidationArguments,
+): boolean {
+  const cuerpo = args?.object as { telefono?: unknown } | undefined;
+  return !alternoIgualAlPrincipal(cuerpo?.telefono, alterno);
+}
+
 export const AlternoDistinto = () =>
   ValidateBy({
     name: 'alternoDistinto',
     validator: {
-      validate: (alterno: unknown, args) =>
-        !alternoIgualAlPrincipal(
-          (args?.object as { telefono?: unknown }).telefono,
-          alterno,
-        ),
+      validate: alternoDistintoValido,
       defaultMessage: () => MENSAJE_ALTERNO_IGUAL,
     },
   });

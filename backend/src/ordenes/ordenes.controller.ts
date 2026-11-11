@@ -21,7 +21,9 @@ import { ActualizarOrdenDto } from './dto/actualizar-orden.dto';
 import { BuscarOrdenesDto } from './dto/buscar-ordenes.dto';
 import { CambiarEstadoDto } from './dto/cambiar-estado.dto';
 import { CrearOrdenDto } from './dto/crear-orden.dto';
+import { EntregarOrdenDto } from './dto/entregar-orden.dto';
 import { RegistrarCotizacionDto } from './dto/registrar-cotizacion.dto';
+import { RegistrarPagoDto } from './dto/registrar-pago.dto';
 import { OrdenesService } from './ordenes.service';
 
 // Portero: token válido (JwtAuthGuard) y rol permitido (RolesGuard).
@@ -35,6 +37,13 @@ export class OrdenesController {
   @Get()
   buscar(@Query() query: BuscarOrdenesDto) {
     return this.ordenesService.buscar(query);
+  }
+
+  // Inicio (dashboard). El saldo total solo va para el Dueño.
+  // (Va antes de ':id'.)
+  @Get('resumen')
+  resumen(@Req() req: RequestConUsuario) {
+    return this.ordenesService.resumen(req.user!.rol);
   }
 
   // Selector de responsable. (Va antes de ':id'.)
@@ -84,5 +93,28 @@ export class OrdenesController {
     @Req() req: RequestConUsuario,
   ) {
     return this.ordenesService.cambiarEstado(id, dto, req.user!.id);
+  }
+
+  // SWR-PAY-004: registrar un abono o el saldo (PERMISOS.pagos).
+  @Post(':id/pagos')
+  @Roles(...PERMISOS.pagos)
+  registrarPago(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: RegistrarPagoDto,
+    @Req() req: RequestConUsuario,
+  ) {
+    return this.ordenesService.registrarPago(id, dto, req.user!.id);
+  }
+
+  // SWR-ENT-003: entregar el equipo (LISTO_PARA_ENTREGA y saldo 0).
+  @Post(':id/entregar')
+  @HttpCode(200)
+  @Roles(...PERMISOS.pagos)
+  entregar(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: EntregarOrdenDto,
+    @Req() req: RequestConUsuario,
+  ) {
+    return this.ordenesService.entregar(id, dto, req.user!.id);
   }
 }

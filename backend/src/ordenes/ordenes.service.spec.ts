@@ -9,9 +9,11 @@ import type { PrismaService } from '../prisma/prisma.service';
 import type { CrearOrdenDto } from './dto/crear-orden.dto';
 import {
   MENSAJE_ORDEN_ENTREGADA_NO_EDITA,
+  MENSAJES_ENTREGA,
   OrdenesService,
 } from './ordenes.service';
 import { MENSAJES_COTIZACION } from './reglas/cotizacion';
+import { MENSAJES_PAGO } from './reglas/saldo';
 import { MENSAJES_TRANSICION } from './reglas/estados';
 
 // Prisma simulado (mock): un "actor" que hace de base de datos, para probar
@@ -30,9 +32,11 @@ function crearPrismaFalso() {
       findMany: jest.fn(),
       count: jest.fn(),
       update: jest.fn(),
+      groupBy: jest.fn(),
+      aggregate: jest.fn(),
     },
     historialEstado: { create: jest.fn() },
-    pago: { aggregate: jest.fn() },
+    pago: { aggregate: jest.fn(), create: jest.fn(), groupBy: jest.fn() },
     $transaction: jest.fn(),
   };
   prisma.$transaction.mockImplementation((fn: (tx: typeof prisma) => unknown) =>
@@ -70,7 +74,7 @@ const pagos = (total: number, cantidad: number) => ({
 const filaBloqueada = (
   estado: EstadoOrden,
   valorCotizado: number | null = null,
-) => ({ id: 5, estado, valorCotizado, porcentajeAbono: 50 });
+) => ({ id: 5, estado, valorCotizado, porcentajeAbono: 50, diasGarantia: 30 });
 
 describe('OrdenesService (Prisma simulado)', () => {
   let prisma: ReturnType<typeof crearPrismaFalso>;
@@ -745,5 +749,487 @@ describe('OrdenesService (Prisma simulado)', () => {
       { cliente: { nombreBusqueda: { contains: 'ms-2026-00002' } } },
       { cliente: { telefono: { contains: '202600002' } } },
     ]);
+  });
+  // ---------- registrarPago (SWR-PAY-004) ----------
+
+  // Pago creado tal como lo devuelve Prisma (eco de lo que se envió).
+  const pagoCreado = () =>
+    prisma.pago.create.mockImplementation(
+      ({ data }: { data: Record<string, unknown> }) =>
+        Promise.resolve({ id: 77, fecha: new Date(), ...data }),
+    );
+
+  it('abono de 125000 sobre 250000: ABONO, saldo 125000 y log sin referencia', async () => {
+    // Arrange
+    prisma.ordenServicio.update.mockResolvedValueOnce(
+      filaBloqueada(EstadoOrden.EN_DIAGNOSTICO, 250000),
+    );
+    prisma.pago.aggregate.mockResolvedValue(pagos(0, 0));
+    pagoCreado();
+
+    // Act
+    const resultado = await servicio.registrarPago(
+      5,
+      { valor: 125000, medio: 'EFECTIVO', referencia: 'RECIBO-12' },
+      USER_ID,
+    );
+
+    // Assert
+    expect(resultado.saldo).toBe(125000);
+    expect(prisma.pago.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          ordenId: 5,
+          tipo: 'ABONO',
+          medio: 'EFECTIVO',
+          valor: 125000,
+          referencia: 'RECIBO-12',
+          usuarioId: USER_ID,
+        },
+      }),
+    );
+    expect(logsEscritos(salida)).toEqual([
+      expect.objectContaining({
+        level: 'INFO',
+        event: 'PAYMENT_REGISTERED',
+        metadata: {
+          ordenId: 5,
+          pagoId: 77,
+          tipo: 'ABONO',
+          medio: 'EFECTIVO',
+          valor: 125000,
+          saldoResultante: 125000,
+          userId: USER_ID,
+        },
+      }),
+    ]);
+    expect(JSON.stringify(salida.mock.calls)).not.toContain('RECIBO-12');
+  });
+
+  // Concurrencia: la fila se bloquea ANTES de sumar los pagos.
+  it('pago: bloquea la orden antes de sumar los pagos', async () => {
+    // Arrange
+    prisma.ordenServicio.update.mockResolvedValueOnce(
+      filaBloqueada(EstadoOrden.EN_REPARACION, 250000),
+    );
+    prisma.pago.aggregate.mockResolvedValue(pagos(125000, 1));
+    pagoCreado();
+
+    // Act
+    await servicio.registrarPago(
+      5,
+      { valor: 1000, medio: 'EFECTIVO' },
+      USER_ID,
+    );
+
+    // Assert
+    const bloqueo = prisma.ordenServicio.update.mock.invocationCallOrder[0];
+    const suma = prisma.pago.aggregate.mock.invocationCallOrder[0];
+    expect(bloqueo).toBeLessThan(suma);
+  });
+
+  // Frontera: exactamente el saldo es válido y queda como SALDO.
+  it('pago de 125000 con saldo 125000: SALDO y saldo 0', async () => {
+    // Arrange
+    prisma.ordenServicio.update.mockResolvedValueOnce(
+      filaBloqueada(EstadoOrden.LISTO_PARA_ENTREGA, 250000),
+    );
+    prisma.pago.aggregate.mockResolvedValue(pagos(125000, 1));
+    pagoCreado();
+
+    // Act
+    const resultado = await servicio.registrarPago(
+      5,
+      { valor: 125000, medio: 'TRANSFERENCIA', referencia: 'PRUEBA-TRF-001' },
+      USER_ID,
+    );
+
+    // Assert
+    expect(resultado).toMatchObject({ pago: { tipo: 'SALDO' }, saldo: 0 });
+    expect(logsEscritos(salida)[0].metadata).toMatchObject({
+      tipo: 'SALDO',
+      saldoResultante: 0,
+    });
+  });
+
+  // Frontera: saldo + 1 se rechaza, sin crear el pago.
+  it('pago de 125001 con saldo 125000: 409 SUPERA_SALDO y log WARN', async () => {
+    // Arrange
+    prisma.ordenServicio.update.mockResolvedValueOnce(
+      filaBloqueada(EstadoOrden.EN_REPARACION, 250000),
+    );
+    prisma.pago.aggregate.mockResolvedValue(pagos(125000, 1));
+
+    // Act
+    const pagar = servicio.registrarPago(
+      5,
+      { valor: 125001, medio: 'EFECTIVO' },
+      USER_ID,
+    );
+
+    // Assert
+    await expect(pagar).rejects.toMatchObject({
+      response: {
+        statusCode: 409,
+        message: MENSAJES_PAGO.SUPERA_SALDO,
+        motivo: 'SUPERA_SALDO',
+      },
+    });
+    expect(prisma.pago.create).not.toHaveBeenCalled();
+    expect(logsEscritos(salida)).toEqual([
+      expect.objectContaining({
+        level: 'WARN',
+        event: 'PAYMENT_REJECTED',
+        metadata: { ordenId: 5, motivo: 'SUPERA_SALDO', userId: USER_ID },
+      }),
+    ]);
+  });
+
+  it.each([
+    [EstadoOrden.ENTREGADO, 250000, 250000, 'ORDEN_ENTREGADA'],
+    [EstadoOrden.RECIBIDO, null, 0, 'SIN_VALOR_COTIZADO'],
+    [EstadoOrden.EN_DIAGNOSTICO, null, 0, 'SIN_VALOR_COTIZADO'],
+  ])(
+    'pago en %s (cotizado %p, pagado %p): 409 %s',
+    async (estado, valorCotizado, pagado, motivo) => {
+      // Arrange
+      prisma.ordenServicio.update.mockResolvedValueOnce(
+        filaBloqueada(estado, valorCotizado),
+      );
+      prisma.pago.aggregate.mockResolvedValue(
+        pagos(pagado, pagado > 0 ? 1 : 0),
+      );
+
+      // Act
+      const pagar = servicio.registrarPago(
+        5,
+        { valor: 1000, medio: 'EFECTIVO' },
+        USER_ID,
+      );
+
+      // Assert
+      await expect(pagar).rejects.toMatchObject({ response: { motivo } });
+      expect(prisma.pago.create).not.toHaveBeenCalled();
+    },
+  );
+
+  it('pago a una orden inexistente: 404', async () => {
+    // Arrange
+    prisma.ordenServicio.update.mockRejectedValueOnce({ code: 'P2025' });
+
+    // Act
+    const pagar = servicio.registrarPago(
+      404,
+      { valor: 1000, medio: 'EFECTIVO' },
+      USER_ID,
+    );
+
+    // Assert
+    await expect(pagar).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  // ---------- entregar (SWR-ENT-003) ----------
+
+  it('entregar LISTO con saldo 0: ENTREGADO, garantía, historial y log sin nombre', async () => {
+    // Arrange: 10/11/2026 a las 23:30 en Colombia (04:30 UTC del 11/11).
+    jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] });
+    jest.setSystemTime(new Date('2026-11-11T04:30:00Z'));
+    prisma.ordenServicio.update.mockResolvedValueOnce(
+      filaBloqueada(EstadoOrden.LISTO_PARA_ENTREGA, 250000),
+    );
+    prisma.pago.aggregate.mockResolvedValue(pagos(250000, 2));
+
+    // Act
+    const resultado = await servicio.entregar(
+      5,
+      { recibidoPorNombre: 'Ana Gómez' },
+      USER_ID,
+    );
+
+    // Assert: 30 días contados desde el 10/11 (día de Colombia).
+    const vence = new Date('2026-12-11T04:59:59.999Z');
+    expect(resultado).toEqual({
+      id: 5,
+      estado: EstadoOrden.ENTREGADO,
+      fechaEntrega: new Date('2026-11-11T04:30:00Z'),
+      fechaVencGarantia: vence,
+    });
+    expect(prisma.ordenServicio.update).toHaveBeenLastCalledWith({
+      where: { id: 5 },
+      data: {
+        estado: EstadoOrden.ENTREGADO,
+        fechaEntrega: new Date('2026-11-11T04:30:00Z'),
+        entregadoPorId: USER_ID,
+        recibidoPorNombre: 'Ana Gómez',
+        fechaVencGarantia: vence,
+      },
+    });
+    expect(prisma.historialEstado.create).toHaveBeenCalledWith({
+      data: {
+        ordenId: 5,
+        estadoAnterior: EstadoOrden.LISTO_PARA_ENTREGA,
+        estadoNuevo: EstadoOrden.ENTREGADO,
+        usuarioId: USER_ID,
+      },
+    });
+    expect(logsEscritos(salida)).toEqual([
+      expect.objectContaining({
+        level: 'INFO',
+        event: 'ORDER_DELIVERED',
+        metadata: { ordenId: 5, userId: USER_ID },
+      }),
+    ]);
+    expect(JSON.stringify(salida.mock.calls)).not.toContain('Ana');
+  });
+
+  // Frontera: con 1 peso pendiente no se entrega.
+  it('entregar LISTO con saldo 1: 409 SALDO_PENDIENTE y DELIVERY_BLOCKED_BALANCE', async () => {
+    // Arrange
+    prisma.ordenServicio.update.mockResolvedValueOnce(
+      filaBloqueada(EstadoOrden.LISTO_PARA_ENTREGA, 250000),
+    );
+    prisma.pago.aggregate.mockResolvedValue(pagos(249999, 2));
+
+    // Act
+    const entregar = servicio.entregar(
+      5,
+      { recibidoPorNombre: 'Ana Gómez' },
+      USER_ID,
+    );
+
+    // Assert
+    await expect(entregar).rejects.toMatchObject({
+      response: {
+        statusCode: 409,
+        message: 'Saldo pendiente $ 1: no se puede entregar',
+        motivo: 'SALDO_PENDIENTE',
+      },
+    });
+    expect(prisma.ordenServicio.update).toHaveBeenCalledTimes(1); // solo el bloqueo
+    expect(prisma.historialEstado.create).not.toHaveBeenCalled();
+    expect(logsEscritos(salida)).toEqual([
+      expect.objectContaining({
+        level: 'WARN',
+        event: 'DELIVERY_BLOCKED_BALANCE',
+        metadata: { ordenId: 5, saldo: 1, userId: USER_ID },
+      }),
+    ]);
+    expect(JSON.stringify(salida.mock.calls)).not.toContain('Ana');
+  });
+
+  it('entregar con saldo 125000: el mensaje muestra $ 125.000', async () => {
+    // Arrange
+    prisma.ordenServicio.update.mockResolvedValueOnce(
+      filaBloqueada(EstadoOrden.LISTO_PARA_ENTREGA, 250000),
+    );
+    prisma.pago.aggregate.mockResolvedValue(pagos(125000, 1));
+
+    // Act
+    const entregar = servicio.entregar(
+      5,
+      { recibidoPorNombre: 'Ana Gómez' },
+      USER_ID,
+    );
+
+    // Assert
+    await expect(entregar).rejects.toMatchObject({
+      response: { message: 'Saldo pendiente $ 125.000: no se puede entregar' },
+    });
+  });
+
+  it('entregar en EN_REPARACION con saldo 0: 409 NO_ESTA_LISTA', async () => {
+    // Arrange
+    prisma.ordenServicio.update.mockResolvedValueOnce(
+      filaBloqueada(EstadoOrden.EN_REPARACION, 250000),
+    );
+    prisma.pago.aggregate.mockResolvedValue(pagos(250000, 1));
+
+    // Act
+    const entregar = servicio.entregar(
+      5,
+      { recibidoPorNombre: 'Ana Gómez' },
+      USER_ID,
+    );
+
+    // Assert
+    await expect(entregar).rejects.toMatchObject({
+      response: {
+        message: MENSAJES_ENTREGA.NO_ESTA_LISTA,
+        motivo: 'NO_ESTA_LISTA',
+      },
+    });
+    expect(logsEscritos(salida)).toEqual([
+      expect.objectContaining({
+        level: 'WARN',
+        event: 'DELIVERY_REJECTED',
+        metadata: {
+          ordenId: 5,
+          motivo: 'NO_ESTA_LISTA',
+          estado: EstadoOrden.EN_REPARACION,
+          userId: USER_ID,
+        },
+      }),
+    ]);
+  });
+
+  // Doble clic: el segundo pedido ya ve ENTREGADO (fila bloqueada).
+  it('segundo clic en entregar: 409 YA_ENTREGADO', async () => {
+    // Arrange
+    prisma.ordenServicio.update.mockResolvedValueOnce(
+      filaBloqueada(EstadoOrden.ENTREGADO, 250000),
+    );
+    prisma.pago.aggregate.mockResolvedValue(pagos(250000, 2));
+
+    // Act
+    const entregar = servicio.entregar(
+      5,
+      { recibidoPorNombre: 'Ana Gómez' },
+      USER_ID,
+    );
+
+    // Assert
+    await expect(entregar).rejects.toMatchObject({
+      response: { motivo: 'YA_ENTREGADO' },
+    });
+  });
+
+  // ---------- detalle con la cuenta ----------
+
+  it('detalle en LISTO con saldo 0: saldo, puedeEntregar y pagos', async () => {
+    // Arrange
+    const listaPagos = [
+      { id: 1, tipo: 'ABONO', valor: 125000 },
+      { id: 2, tipo: 'SALDO', valor: 125000 },
+    ];
+    prisma.ordenServicio.findUnique.mockResolvedValue({
+      id: 5,
+      estado: EstadoOrden.LISTO_PARA_ENTREGA,
+      valorCotizado: 250000,
+      porcentajeAbono: 50,
+      pagos: listaPagos,
+    });
+    prisma.pago.aggregate.mockResolvedValue(pagos(250000, 2));
+
+    // Act
+    const detalle = await servicio.obtener(5);
+
+    // Assert
+    expect(detalle).toMatchObject({
+      totalPagado: 250000,
+      saldo: 0,
+      abonoMinimo: 125000,
+      puedeEntregar: true,
+      pagos: listaPagos,
+    });
+  });
+
+  it('detalle sin cotización: saldo null y no puede entregar', async () => {
+    // Arrange
+    prisma.ordenServicio.findUnique.mockResolvedValue({
+      id: 5,
+      estado: EstadoOrden.RECIBIDO,
+      valorCotizado: null,
+      porcentajeAbono: 50,
+    });
+    prisma.pago.aggregate.mockResolvedValue(pagos(0, 0));
+
+    // Act
+    const detalle = await servicio.obtener(5);
+
+    // Assert
+    expect(detalle).toMatchObject({
+      saldo: null,
+      abonoMinimo: null,
+      puedeEntregar: false,
+    });
+  });
+  // ---------- resumen del inicio ----------
+
+  const datosResumen = () => {
+    prisma.ordenServicio.groupBy.mockResolvedValue([
+      { estado: EstadoOrden.EN_DIAGNOSTICO, _count: { _all: 2 } },
+      { estado: EstadoOrden.LISTO_PARA_ENTREGA, _count: { _all: 1 } },
+      { estado: EstadoOrden.ENTREGADO, _count: { _all: 4 } },
+    ]);
+    prisma.ordenServicio.findMany.mockImplementation(
+      ({ select }: { select: Record<string, unknown> }) =>
+        Promise.resolve([
+          {
+            id: 7,
+            numero: 'MS-2026-00007',
+            estado: EstadoOrden.EN_DIAGNOSTICO,
+            ...('valorCotizado' in select ? { valorCotizado: null } : {}),
+          },
+          {
+            id: 2,
+            numero: 'MS-2026-00002',
+            estado: EstadoOrden.LISTO_PARA_ENTREGA,
+            ...('valorCotizado' in select ? { valorCotizado: 250000 } : {}),
+          },
+        ]),
+    );
+    prisma.ordenServicio.aggregate.mockResolvedValue({
+      _sum: { valorCotizado: 430000 },
+    });
+    prisma.pago.aggregate.mockResolvedValue({ _sum: { valor: 215000 } });
+    prisma.pago.groupBy.mockResolvedValue([
+      { ordenId: 2, _sum: { valor: 125000 } },
+    ]);
+  };
+
+  it('resumen del Dueño: conteo con ceros, saldo total y saldo por orden', async () => {
+    // Arrange
+    datosResumen();
+
+    // Act
+    const resumen = await servicio.resumen('DUENO');
+
+    // Assert
+    expect(resumen).toEqual({
+      porEstado: {
+        RECIBIDO: 0,
+        EN_DIAGNOSTICO: 2,
+        EN_REPARACION: 0,
+        LISTO_PARA_ENTREGA: 1,
+        ENTREGADO: 4,
+      },
+      total: 7,
+      saldoPendienteTotal: 215000,
+      recientes: [
+        expect.objectContaining({ id: 7, saldo: null }),
+        expect.objectContaining({ id: 2, saldo: 125000 }),
+      ],
+    });
+    // Saldo total solo de órdenes NO entregadas.
+    expect(prisma.ordenServicio.aggregate).toHaveBeenCalledWith({
+      where: { estado: { not: EstadoOrden.ENTREGADO } },
+      _sum: { valorCotizado: true },
+    });
+    expect(prisma.pago.aggregate).toHaveBeenCalledWith({
+      where: { orden: { estado: { not: EstadoOrden.ENTREGADO } } },
+      _sum: { valor: true },
+    });
+    // Las 5 creadas más recientemente.
+    expect(prisma.ordenServicio.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { creadoEn: 'desc' }, take: 5 }),
+    );
+  });
+
+  it('resumen del Técnico: sin saldo total ni saldos, ni consulta montos', async () => {
+    // Arrange
+    datosResumen();
+
+    // Act
+    const resumen = await servicio.resumen('TECNICO');
+
+    // Assert
+    expect(resumen).not.toHaveProperty('saldoPendienteTotal');
+    expect(resumen.total).toBe(7);
+    for (const orden of resumen.recientes) {
+      expect(orden).not.toHaveProperty('saldo');
+      expect(orden).not.toHaveProperty('valorCotizado');
+    }
+    expect(prisma.ordenServicio.aggregate).not.toHaveBeenCalled();
+    expect(prisma.pago.aggregate).not.toHaveBeenCalled();
   });
 });
