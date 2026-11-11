@@ -31,10 +31,20 @@ type CuentaOrdenProps = Pick<
   | "pagos"
 >;
 
+// px-3 (no px-4): las cinco columnas caben en la tarjeta de media pantalla
+// sin scroll horizontal; el scroll queda solo como respaldo en pantallas
+// angostas.
 const celdaEncabezado =
-  "px-4 py-3 text-start text-theme-xs font-medium text-gray-500 dark:text-gray-400";
+  "px-3 py-3 text-start text-theme-xs font-medium text-gray-500 dark:text-gray-400";
 const celda =
-  "px-4 py-3 text-start text-theme-sm text-gray-600 dark:text-gray-400";
+  "px-3 py-3 text-start text-theme-sm text-gray-600 dark:text-gray-400";
+
+// "10/11/2026, 10:29 a. m." -> día y hora en dos líneas, cada una sin partir.
+function partesFecha(iso: string): [string, string] {
+  const texto = formatearFecha(iso);
+  const i = texto.indexOf(", ");
+  return i === -1 ? [texto, ""] : [texto.slice(0, i), texto.slice(i + 2)];
+}
 
 // SWR-PAY-004: total cotizado, lo pagado, el saldo y la lista de pagos.
 // Los montos los calcula el backend con sus reglas puras.
@@ -135,32 +145,40 @@ export default function CuentaOrden({
                   </TableCell>
                 </TableRow>
               ) : (
-                pagos.map((pago) => (
-                  <TableRow key={pago.id}>
-                    <TableCell className={`${celda} whitespace-nowrap`}>
-                      {formatearFecha(pago.fecha)}
-                    </TableCell>
-                    <TableCell className={celda}>
-                      {ETIQUETA_TIPO_PAGO[pago.tipo]}
-                    </TableCell>
-                    <TableCell className={celda}>
-                      {ETIQUETA_MEDIO[pago.medio]}
-                      {pago.referencia && (
-                        <span className="text-theme-xs block">
-                          Ref. {pago.referencia}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell
-                      className={`${celda} font-medium whitespace-nowrap text-gray-800 dark:text-white/90`}
-                    >
-                      {formatearPesos(pago.valor)}
-                    </TableCell>
-                    <TableCell className={celda}>
-                      {pago.usuario.nombre}
-                    </TableCell>
-                  </TableRow>
-                ))
+                pagos.map((pago) => {
+                  const [dia, hora] = partesFecha(pago.fecha);
+                  return (
+                    <TableRow key={pago.id}>
+                      <TableCell className={celda}>
+                        <span className="block whitespace-nowrap">{dia}</span>
+                        {hora && (
+                          <span className="text-theme-xs block whitespace-nowrap">
+                            {hora}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className={celda}>
+                        {ETIQUETA_TIPO_PAGO[pago.tipo]}
+                      </TableCell>
+                      <TableCell className={celda}>
+                        {ETIQUETA_MEDIO[pago.medio]}
+                        {pago.referencia && (
+                          <span className="text-theme-xs block">
+                            Ref. {pago.referencia}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell
+                        className={`${celda} font-medium whitespace-nowrap text-gray-800 dark:text-white/90`}
+                      >
+                        {formatearPesos(pago.valor)}
+                      </TableCell>
+                      <TableCell className={celda}>
+                        {pago.usuario.nombre}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>

@@ -71,7 +71,9 @@ export default function DistribucionEstados({
               className={`size-2.5 shrink-0 rounded-full ${PUNTO_ESTADO[estado]}`}
             />
             <span>{ETIQUETA_ESTADO[estado]}</span>
-            <span className="ms-auto font-medium text-gray-800 tabular-nums xl:ms-0 dark:text-white/90">
+            {/* El número y su porcentaje no se separan: si falta espacio
+                se parte el nombre del estado, no "0 (0 %)". */}
+            <span className="ms-auto shrink-0 font-medium whitespace-nowrap text-gray-800 tabular-nums xl:ms-0 dark:text-white/90">
               {porEstado[estado]} ({pct[estado]} %)
             </span>
           </li>
