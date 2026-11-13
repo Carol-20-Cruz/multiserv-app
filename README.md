@@ -1,5 +1,7 @@
 # MultiServ
 
+[![CI](https://github.com/Carol-20-Cruz/multiserv-app/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/Carol-20-Cruz/multiserv-app/actions/workflows/ci.yml)
+
 Sistema web para la gestión de servicios de MultiServ, desarrollado como proyecto de la asignatura **Calidad de Software** en CORHUILA (2026).
 
 ## Autoras
