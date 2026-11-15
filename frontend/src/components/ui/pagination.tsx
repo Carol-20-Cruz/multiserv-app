@@ -44,9 +44,12 @@ function PaginationLink({
   disabled,
   size = "icon",
   variant,
-  onClick,
+  href,
   ...props
 }: PaginationLinkProps) {
+  // D12: este componente se ejecuta como Server Component y su <a> viaja al
+  // Button de @base-ui ('use client'), así que no puede llevar funciones
+  // (antes: onClick con preventDefault). Deshabilitado = <a> sin href.
   return (
     <Button
       variant={isActive ? "default" : (variant ?? "ghost")}
@@ -64,8 +67,8 @@ function PaginationLink({
           tabIndex={disabled ? -1 : undefined}
           data-slot="pagination-link"
           data-active={isActive}
-          onClick={disabled ? (e) => e.preventDefault() : onClick}
           {...props}
+          href={disabled ? undefined : href}
         />
       }
     />
