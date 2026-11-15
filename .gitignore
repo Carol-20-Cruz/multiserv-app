@@ -42,3 +42,7 @@ frontend/next-env.d.ts
 # Archivos que genera next dev para asistentes de IA
 frontend/AGENTS.md
 frontend/CLAUDE.md
+
+# Playwright: trazas, capturas y video de fallos (guardan lo escrito en el
+# login, incluida la contraseña). El reporte HTML se revisa antes de subirlo.
+docs/calidad/10_Playwright/resultados/
