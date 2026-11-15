@@ -1,0 +1,88 @@
+MultiServ - Evidencia Shift Right (logs del backend)
+Modulo: Escenarios complementarios - validacion, error provocado y duracion (docs/shift-right)
+Fecha de ejecucion: 15/11/2026 (horas del log en UTC; Colombia = UTC-5)
+Ambiente: backend NestJS local (puerto 3001, build de produccion: npm run build + node dist/main)
+          conectado a Supabase; frontend Next.js local (puerto 3000, next dev).
+Como se genero:
+  - Escenarios 1 a 3: script local con fetch. Lee la contrasena del seed de backend/.env solo en
+    memoria (no se imprime ni se guarda). Datos ficticios con prefijo SR-.
+  - Escenario 4: recorrido real en el navegador como Duena (cliente, equipo, orden, cotizacion y
+    dos pagos), con datos ficticios SR- y telefono que empieza por 3.
+Depuracion: se omiten las lineas internas de arranque de NestJS (NEST_LOG). En UNHANDLED_ERROR la
+ruta absoluta del equipo se reemplazo por <ruta-local> (contenia el usuario de Windows, ver HAE-04).
+Nota de privacidad: se busco en este archivo el nombre y el telefono del cliente SR-, el telefono
+del escenario de validacion, los correos, la contrasena y el secreto JWT del .env, tokens JWT, hashes
+bcrypt y el usuario de Windows: 0 coincidencias.
+Captura: sr-duracion-pagos.png (orden MS-2026-00019 con los dos pagos y saldo $ 0).
+
+======================================================================
+ESCENARIO 0 - Inicio de la aplicacion
+Resultado esperado: evento INFO APP_STARTED con el puerto
+Resultado obtenido: PASS
+======================================================================
+{"timestamp":"2026-11-15T21:04:58.157Z","level":"INFO","context":"Bootstrap","event":"APP_STARTED","message":"Servidor iniciado","metadata":{"port":3001}}
+
+======================================================================
+ESCENARIO 1 - Login del Dueno (script)
+Resultado esperado: HTTP 200 y LOGIN_SUCCESS solo con userId
+Resultado obtenido: HTTP 200 - PASS
+======================================================================
+{"timestamp":"2026-11-15T21:05:20.546Z","level":"INFO","context":"AuthService","event":"LOGIN_SUCCESS","message":"Inicio de sesión exitoso","metadata":{"userId":1}}
+
+======================================================================
+ESCENARIO 2 - Dato invalido: telefono de 9 digitos (POST /clientes, SWR-CLI-003)
+Resultado esperado: HTTP 400 con el mensaje de la regla; VALIDATION_FAILED (WARN) con el nombre del campo, sin su valor;
+                    no se crea el cliente
+Resultado obtenido: HTTP 400 {"message":["El telefono debe tener exactamente 10 digitos"]}; el log solo dice
+                    campos ["telefono"]; no se creo ningun cliente - PASS
+======================================================================
+{"timestamp":"2026-11-15T21:05:20.569Z","level":"WARN","context":"AllExceptionsFilter","event":"VALIDATION_FAILED","message":"Datos inválidos","metadata":{"method":"POST","path":"/clientes","campos":["telefono"]}}
+
+======================================================================
+ESCENARIO 3 - Error provocado: GET /clientes/99999999999 (id fuera del rango de un entero de 32 bits)
+Resultado esperado: peticion de solo lectura; el error no se le muestra al usuario; queda un ERROR con contexto
+Resultado obtenido: HTTP 500 {"message":"Error interno del servidor"} (sin detalles internos);
+                    UNHANDLED_ERROR (ERROR) con metodo, ruta, tipo y detalle - PASS como evidencia
+Hallazgos: D14 - un id fuera de rango deberia responder 400 o 404, no 500 (abierto).
+           HAE-04 - "detail" copia el mensaje completo de Prisma: ruta del equipo, lineas del
+           codigo y valores de la consulta (abierto). Ambos en 11_Errores_Defectos_Fallas_Incidentes.xlsx.
+======================================================================
+{"timestamp":"2026-11-15T21:05:20.680Z","level":"ERROR","context":"AllExceptionsFilter","event":"UNHANDLED_ERROR","message":"Error no controlado","metadata":{"method":"GET","path":"/clientes/99999999999","error":"PrismaClientKnownRequestError","detail":"\nInvalid `this.prisma.cliente.findUnique()` invocation in\n<ruta-local>\\backend\\dist\\clientes\\clientes.service.js:115:51\n\n  112     }\n  113 }\n  114 async obtener(id) {\n→ 115     const cliente = await this.prisma.cliente.findUnique(\nValue out of range for the type: value \"99999999999\" is out of range for type integer"}}
+
+======================================================================
+ESCENARIO 4 - Operacion relevante: duracion del registro de pago (SWR-PAY-004, orden MS-2026-00019)
+Resultado esperado: secuencia INFO CLIENT_CREATED -> EQUIPMENT_ADDED -> ORDER_CREATED -> ORDER_STATUS_CHANGED ->
+                    ORDER_QUOTE_SET -> PAYMENT_REGISTERED (ABONO) -> PAYMENT_REGISTERED (SALDO),
+                    cada pago con duracionMs; solo ids, montos y tipos
+Resultado obtenido: secuencia completa; abono de $ 50.000 en 889 ms y saldo de $ 50.000 en 846 ms;
+                    saldo final $ 0 - PASS
+Nota: el navegador ya tenia la sesion de la Duena abierta (cookie vigente), por eso este
+escenario no tiene su propio LOGIN_SUCCESS.
+======================================================================
+{"timestamp":"2026-11-15T21:16:19.308Z","level":"INFO","context":"ClientesService","event":"CLIENT_CREATED","message":"Cliente registrado","metadata":{"clienteId":41,"userId":1}}
+{"timestamp":"2026-11-15T21:17:51.868Z","level":"INFO","context":"ClientesService","event":"EQUIPMENT_ADDED","message":"Equipo asociado al cliente","metadata":{"equipoId":38,"clienteId":41,"userId":1}}
+{"timestamp":"2026-11-15T21:18:45.410Z","level":"INFO","context":"OrdenesService","event":"ORDER_CREATED","message":"Orden de servicio creada","metadata":{"ordenId":19,"numero":"MS-2026-00019","clienteId":41,"equipoId":38,"responsableId":1,"userId":1}}
+{"timestamp":"2026-11-15T21:18:58.577Z","level":"INFO","context":"OrdenesService","event":"ORDER_STATUS_CHANGED","message":"Estado de la orden cambiado","metadata":{"ordenId":19,"de":"RECIBIDO","a":"EN_DIAGNOSTICO","userId":1}}
+{"timestamp":"2026-11-15T21:19:37.539Z","level":"INFO","context":"OrdenesService","event":"ORDER_QUOTE_SET","message":"Cotización aprobada registrada","metadata":{"ordenId":19,"valorCotizado":100000,"valorAnterior":null,"correccion":false,"userId":1}}
+{"timestamp":"2026-11-15T21:19:51.801Z","level":"INFO","context":"OrdenesService","event":"PAYMENT_REGISTERED","message":"Pago registrado","metadata":{"ordenId":19,"pagoId":29,"tipo":"ABONO","medio":"EFECTIVO","valor":50000,"saldoResultante":50000,"userId":1,"duracionMs":889}}
+{"timestamp":"2026-11-15T21:20:10.748Z","level":"INFO","context":"OrdenesService","event":"PAYMENT_REGISTERED","message":"Pago registrado","metadata":{"ordenId":19,"pagoId":30,"tipo":"SALDO","medio":"EFECTIVO","valor":50000,"saldoResultante":0,"userId":1,"duracionMs":846}}
+
+######################################################################
+QUE APRENDIMOS DE ESTOS LOGS
+######################################################################
+1. Validacion: el 400 le da al usuario el mensaje exacto de la regla, y el log guarda solo el NOMBRE
+   del campo que fallo (telefono), nunca el valor. Sirve para ver que campos fallan mas sin guardar
+   datos personales.
+2. Error provocado: el usuario recibe un mensaje generico y el log tiene el contexto para encontrar
+   la causa (metodo, ruta, tipo de error y el motivo: "out of range for type integer"). Con ese log
+   se encontro el defecto D14 sin abrir el codigo.
+3. El mismo log mostro un riesgo (HAE-04): "detail" guarda el mensaje completo del error, con la ruta
+   del equipo y el codigo fuente. En un insert podria traer datos personales. Hay que registrar solo
+   el tipo y el codigo del error.
+4. Duracion: registrar un pago tarda unos 846-889 ms. Los dos valores son parecidos, asi que sirven
+   como linea base. La operacion hace varias idas y vueltas a Supabase (abrir la transaccion,
+   bloquear la orden, sumar los pagos, insertar y confirmar), por eso el tiempo depende sobre todo de
+   la red. Si sube mucho con varios usuarios a la vez, la causa probable es la espera del bloqueo
+   de la fila.
+5. La secuencia INFO del escenario 4 permite reconstruir el flujo completo solo con ids (cliente 41,
+   equipo 38, orden 19, pagos 29 y 30), sin el nombre ni el telefono del cliente.
