@@ -591,6 +591,9 @@ export class OrdenesService {
   // SWR-PAY-004: registrar un abono o el pago del saldo. El tipo lo decide
   // el servidor (SALDO si cubre todo lo que falta; si no, ABONO).
   async registrarPago(id: number, dto: RegistrarPagoDto, userId: number) {
+    // Shift Right: cuánto tarda el registro (bloqueo de la fila, suma de
+    // pagos, validación e insert). Solo un número, sin datos de la persona.
+    const inicio = performance.now();
     try {
       const { pago, saldoResultante } = await this.prisma.$transaction(
         async (tx) => {
@@ -639,6 +642,7 @@ export class OrdenesService {
         valor: pago.valor,
         saldoResultante,
         userId,
+        duracionMs: Math.round(performance.now() - inicio),
       });
       return { pago, saldo: saldoResultante };
     } catch (error) {

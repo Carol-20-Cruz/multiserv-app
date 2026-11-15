@@ -766,6 +766,11 @@ describe('OrdenesService (Prisma simulado)', () => {
     );
     prisma.pago.aggregate.mockResolvedValue(pagos(0, 0));
     pagoCreado();
+    // Reloj simulado: empieza en 1000 ms y termina en 1042,4 ms.
+    jest
+      .spyOn(performance, 'now')
+      .mockReturnValueOnce(1000)
+      .mockReturnValueOnce(1042.4);
 
     // Act
     const resultado = await servicio.registrarPago(
@@ -800,10 +805,39 @@ describe('OrdenesService (Prisma simulado)', () => {
           valor: 125000,
           saldoResultante: 125000,
           userId: USER_ID,
+          duracionMs: 42,
         },
       }),
     ]);
     expect(JSON.stringify(salida.mock.calls)).not.toContain('RECIBO-12');
+  });
+
+  // Shift Right: la duración es un entero en ms medido de punta a punta.
+  it('pago registrado: duracionMs es la diferencia redondeada entre inicio y fin', async () => {
+    // Arrange
+    prisma.ordenServicio.update.mockResolvedValueOnce(
+      filaBloqueada(EstadoOrden.EN_REPARACION, 250000),
+    );
+    prisma.pago.aggregate.mockResolvedValue(pagos(125000, 1));
+    pagoCreado();
+    jest
+      .spyOn(performance, 'now')
+      .mockReturnValueOnce(500)
+      .mockReturnValueOnce(500.6);
+
+    // Act
+    await servicio.registrarPago(
+      5,
+      { valor: 125000, medio: 'EFECTIVO' },
+      USER_ID,
+    );
+
+    // Assert
+    const [log] = logsEscritos(salida) as {
+      metadata: { duracionMs: unknown };
+    }[];
+    expect(log.metadata.duracionMs).toBe(1);
+    expect(Number.isInteger(log.metadata.duracionMs)).toBe(true);
   });
 
   // Concurrencia: la fila se bloquea ANTES de sumar los pagos.
