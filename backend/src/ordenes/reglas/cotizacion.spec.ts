@@ -20,6 +20,9 @@ describe('Reglas de la cotización aprobada', () => {
 
   // Camino 3 (frontera): con 1 pago el valor queda fijo (respuesta de la dueña).
   it('EN_DIAGNOSTICO con 1 pago: TIENE_PAGOS', () => {
+    // Arrange: orden EN_DIAGNOSTICO con 1 pago registrado; van directo
+    // en la llamada (estado y cantidad de pagos).
+
     // Act
     const resultado = evaluarCotizacion(EstadoOrden.EN_DIAGNOSTICO, 1);
 
