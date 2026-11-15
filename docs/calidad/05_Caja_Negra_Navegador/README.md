@@ -10,6 +10,42 @@ mirar el código, aplicando tres técnicas formales:
 - **Transición de estados:** cambios de estado permitidos y bloqueados
   (cuenta activa → bloqueada, orden lista → entregada…).
 
+## Resultado de la ejecución (15-nov-2026)
+
+| ID | Resultado | Evidencia |
+|---|---|---|
+| CN-01 | Pasa | `CN-01.png` |
+| CN-02 | Pasa | `CN-02a.png`, `CN-02b.png` |
+| CN-03 | Pasa | `CN-03.png` |
+| CN-04 | Pasa | `CN-04.png` |
+| CN-05 | Pasa | `CN-05.png` |
+| CN-06 | Pasa | `CN-06.png` |
+| CN-07 | Pasa | `CN-07.png` |
+| CN-08 | Pasa | `CN-08.png` |
+| CN-09 | Pasa | `CN-09a.png`, `CN-09b.png` |
+| CN-10 | Pasa | `CN-10.png` |
+| CN-11 | Pasa | `CN-11b.png` |
+| CN-12 | Pasa | `CN-12a.png`, `CN-12b.png` |
+| CN-13 | Pasa | `CN-13a.png`, `CN-13b.png`, `CN-13c.png` |
+| CN-14 | Pasa | `CN-14a.png`, `CN-14b.png` |
+| **Total** | **14/14 Pasa** | |
+
+El detalle de cada caso (resultado obtenido con el mensaje tal cual, fecha y
+quién lo ejecutó) está en la hoja Casos del Excel.
+
+Notas de la ejecución:
+
+- **Defecto D12 encontrado durante la ejecución.** Con más de 10 clientes
+  aparece la paginación y `/clientes` caía con un error de servidor. Se
+  corrigió en la rama `fix/paginacion` (PR mergeado a `develop`) y el
+  re-test fue correcto. Evidencias en
+  `docs/calidad/capturas/defectos/defecto-12-*`.
+- **CN-07 se repitió con un teléfono nuevo (3205550303).** El primero ya
+  existía en un cliente desactivado: era un dato de prueba contaminado, no
+  un defecto.
+- **CN-09 se repitió en una orden nueva (17)** por un error de ejecución: el
+  pago se registró dos veces en la orden 16.
+
 ## Archivos
 
 | Archivo | Contenido |
