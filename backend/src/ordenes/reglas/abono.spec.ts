@@ -12,6 +12,9 @@ describe('Regla del abono mínimo', () => {
 
   // SWR-CON-003 (frontera): un valor impar redondea hacia arriba.
   it('180001 al 50 %: 90001 (nunca menos del 50 %)', () => {
+    // Arrange: valor cotizado 180001 (impar) y porcentaje 50; van
+    // directo en la llamada porque son solo dos números.
+
     // Act
     const abono = abonoMinimo(180001, 50);
 

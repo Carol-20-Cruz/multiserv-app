@@ -1,0 +1,122 @@
+Fecha de la corrida: 2026-11-15 15:15 (local, Windows, Node v26.13.0)
+Comando (desde frontend/): npx --no-install vitest run --reporter=verbose
+
+
+ RUN  v5.1.0 <repo>/frontend
+
+ ✓ src/components/clientes/cliente-form/cliente-form.test.tsx > Formulario de cliente > muestra los campos con label visible y el botón Registrar cliente 550ms
+ ✓ src/components/ordenes/avanzar-estado.test.tsx > Avanzar el estado de la orden > bloqueo FALTA_ABONO: botón deshabilitado y aviso con los montos 358ms
+ ✓ src/components/ordenes/avanzar-estado.test.tsx > Avanzar el estado de la orden > bloqueo FALTA_VALOR_COTIZADO: deshabilitado con su mensaje 28ms
+ ✓ src/components/ordenes/entregar-orden.test.tsx > Motivo para no entregar > LISTO_PARA_ENTREGA con saldo %p (puede %p) 6ms
+ ✓ src/components/ordenes/entregar-orden.test.tsx > Motivo para no entregar > LISTO_PARA_ENTREGA con saldo %p (puede %p) 2ms
+ ✓ src/components/ordenes/entregar-orden.test.tsx > Motivo para no entregar > EN_REPARACION con saldo %p (puede %p) 1ms
+ ✓ src/components/ordenes/entregar-orden.test.tsx > Motivo para no entregar > LISTO_PARA_ENTREGA con saldo %p (puede %p) 2ms
+ ✓ src/components/ordenes/entregar-orden.test.tsx > Entregar el equipo > LISTO con saldo $ 125.000: deshabilitado y dice el saldo 325ms
+ ✓ src/components/ordenes/entregar-orden.test.tsx > Entregar el equipo > en reparación: deshabilitado hasta que esté lista 41ms
+ ✓ src/components/ordenes/registrar-pago.test.tsx > Valor sugerido del pago > saldo %p, abono %p, pagado %p: sugiere %p 5ms
+ ✓ src/components/ordenes/registrar-pago.test.tsx > Valor sugerido del pago > saldo %p, abono %p, pagado %p: sugiere %p 1ms
+ ✓ src/components/ordenes/registrar-pago.test.tsx > Valor sugerido del pago > saldo %p, abono %p, pagado %p: sugiere %p 1ms
+ ✓ src/components/ordenes/registrar-pago.test.tsx > Valor sugerido del pago > saldo %p, abono %p, pagado %p: sugiere %p 0ms
+ ✓ src/components/ordenes/entregar-orden.test.tsx > Entregar el equipo > LISTO con saldo 0: habilitado 55ms
+ ✓ src/components/clientes/cliente-form/cliente-form.test.tsx > Formulario de cliente > nombre vacío: muestra 'El nombre es obligatorio' y no envía 532ms
+ ✓ src/components/ordenes/avanzar-estado.test.tsx > Avanzar el estado de la orden > sin bloqueo: confirma y envía estadoNuevo con el comentario 976ms
+ ✓ src/components/ordenes/registrar-cotizacion.test.tsx > Registrar la cotización aprobada > campos vacíos: muestra los dos errores y no envía 837ms
+ ✓ src/components/clientes/cliente-form/cliente-form.test.tsx > Formulario de cliente > teléfono de 9 dígitos: muestra el error de longitud 349ms
+ ✓ src/components/ordenes/registrar-pago.test.tsx > Registrar un pago > sin pagos: sugiere el abono mínimo de $ 125.000 736ms
+ ✓ src/components/ordenes/avanzar-estado.test.tsx > Avanzar el estado de la orden > el backend responde 409: muestra el motivo y no navega 191ms
+ ✓ src/components/ordenes/avanzar-estado.test.tsx > Avanzar el estado de la orden > listo para entrega: no hay botón y explica que la entrega va aparte 13ms
+ ✓ src/components/inventario/repuesto-form/repuesto-form.test.tsx > Formulario de repuesto > enviar vacío: muestra los mensajes en español y no llama a la API 691ms
+ ✓ src/components/clientes/cliente-form/cliente-form.test.tsx > Formulario de cliente > teléfono con letras: muestra 'solo puede tener números' 254ms
+ ✓ src/components/ordenes/registrar-pago.test.tsx > Registrar un pago > abono cubierto: sugiere todo el saldo y dice que queda como saldo 194ms
+ ✓ src/components/ordenes/avanzar-estado.test.tsx > Avanzar el estado de la orden > doble clic en Confirmar cambio: se envía una sola vez 302ms
+ ✓ src/components/ordenes/entregar-orden.test.tsx > Entregar el equipo > Recibido por vacío o de 2 letras: muestra el error y no envía 779ms
+ ✓ src/components/ordenes/registrar-cotizacion.test.tsx > Registrar la cotización aprobada > valor 0: 'El valor cotizado debe ser mayor que 0' 633ms
+ ✓ src/components/inventario/repuesto-form/repuesto-form.test.tsx > Formulario de repuesto > precio con decimales y mínimo negativo: muestra los errores 435ms
+ ✓ src/components/ordenes/orden-form/orden-form.test.tsx > Formulario de orden de servicio > prellenado con ?clienteId&equipoId: muestra el cliente y el equipo 477ms
+ ✓ src/components/clientes/cliente-form/cliente-form.test.tsx > Formulario de cliente > sin marcar la autorización: muestra el error y no envía 466ms
+ ✓ src/components/inventario/repuesto-form/repuesto-form.test.tsx > Formulario de repuesto > cantidad inicial igual al mínimo: avisa que quedará con existencia baja 100ms
+ ✓ src/components/ordenes/entregar-orden.test.tsx > Entregar el equipo > Recibido por válido: envía el nombre recortado y vuelve con ?entregada=1 369ms
+ ✓ src/components/ordenes/registrar-pago.test.tsx > Registrar un pago > valor = saldo + 1: muestra el tope y no envía 560ms
+ ✓ src/components/ordenes/orden-form/orden-form.test.tsx > Formulario de orden de servicio > falla vacía: muestra el error y no envía 212ms
+ ✓ src/components/inventario/repuesto-form/repuesto-form.test.tsx > Formulario de repuesto > editar: envía PATCH sin cantidad y abre el detalle 295ms
+ ✓ src/components/ordenes/entregar-orden.test.tsx > Entregar el equipo > el backend responde 409 SALDO_PENDIENTE: muestra el mensaje 298ms
+ ✓ src/components/ordenes/registrar-pago.test.tsx > Registrar un pago > valor %p: '' 231ms
+ ✓ src/components/ordenes/orden-form/orden-form.test.tsx > Formulario de orden de servicio > sin cliente elegido: muestra 'El cliente es obligatorio' y no envía 245ms
+ ✓ src/components/inventario/repuesto-form/repuesto-form.test.tsx > Formulario de repuesto > referencia de un repuesto desactivado (409): muestra el mensaje en el campo 110ms
+ ✓ src/components/ordenes/registrar-cotizacion.test.tsx > Registrar la cotización aprobada > valor 12,5: 'El valor cotizado debe ser un valor entero en pesos' 600ms
+ ✓ src/components/clientes/cliente-form/cliente-form.test.tsx > Formulario de cliente > teléfono duplicado (409): muestra el aviso con enlace al cliente existente 484ms
+ ✓ src/components/inventario/repuesto-form/repuesto-form.test.tsx > Formulario de repuesto > doble clic en Guardar cambios: se envía una sola vez 280ms
+ ✓ src/components/ordenes/registrar-pago.test.tsx > Registrar un pago > valor %p: '0' 312ms
+ ✓ src/components/ordenes/orden-form/orden-form.test.tsx > Formulario de orden de servicio > a domicilio sin dirección: muestra el error y no envía 349ms
+ ✓ src/components/ordenes/entregar-orden.test.tsx > Entregar el equipo > doble clic en Confirmar entrega: se envía una sola vez 426ms
+ ✓ src/components/ordenes/entregar-orden.test.tsx > Entregar el equipo > ya entregada: muestra la entrega y no ofrece entregar 16ms
+ ✓ src/components/clientes/cliente-form/cliente-form.test.tsx > Formulario de cliente > datos válidos: registra, muestra el mensaje de éxito y abre el detalle 460ms
+ ✓ src/components/ordenes/registrar-pago.test.tsx > Registrar un pago > valor %p: '12,5' 315ms
+ ✓ src/components/ordenes/entregar-orden.test.tsx > Entregar el equipo > el backend responde 500: mensaje de error inesperado 340ms
+ ✓ src/components/ordenes/registrar-cotizacion.test.tsx > Registrar la cotización aprobada > valor 1.000.000.000: 'El valor cotizado no puede superar $ 999.999.999' 600ms
+ ✓ src/components/ordenes/orden-form/orden-form.test.tsx > Formulario de orden de servicio > datos válidos: crea la orden y abre su detalle 338ms
+ ✓ src/components/clientes/cliente-form/cliente-form.test.tsx > Formulario de cliente > alterno igual al principal: muestra el error y no envía 635ms
+ ✓ src/components/ordenes/registrar-pago.test.tsx > Registrar un pago > valor = saldo por transferencia: envía el POST y vuelve con ?pago=1 749ms
+ ✓ src/components/ordenes/registrar-cotizacion.test.tsx > Registrar la cotización aprobada > valor '180.000': envía 180000 con PUT y vuelve al detalle 677ms
+ ✓ src/components/clientes/cliente-form/cliente-form.test.tsx > Formulario de cliente > editar con el alterno igual al principal: muestra el error y no envía 224ms
+ ✓ src/components/ordenes/registrar-pago.test.tsx > Registrar un pago > abono en efectivo sin referencia: envía referencia null 184ms
+ ✓ src/components/ordenes/orden-form/orden-form.test.tsx > Formulario de orden de servicio > a domicilio con dirección y fecha: envía la fecha en hora de Colombia 875ms
+ ✓ src/components/ordenes/registrar-pago.test.tsx > Registrar un pago > el backend responde 409 SUPERA_SALDO: muestra el mensaje 156ms
+ ✓ src/components/ordenes/registrar-cotizacion.test.tsx > Registrar la cotización aprobada > corregir: trae lo guardado y envía el valor nuevo 350ms
+ ✓ src/components/ordenes/orden-form/orden-form.test.tsx > Formulario de orden de servicio > buscar y elegir un cliente con un solo equipo: lo deja elegido 267ms
+ ✓ src/components/ordenes/registrar-cotizacion.test.tsx > Registrar la cotización aprobada > el backend responde 409 TIENE_PAGOS: muestra el mensaje 176ms
+ ✓ src/components/clientes/cliente-form/cliente-form.test.tsx > Formulario de cliente > doble clic en Registrar cliente: se envía una sola vez 627ms
+ ✓ src/components/ordenes/registrar-pago.test.tsx > Registrar un pago > doble clic en Guardar pago: se envía una sola vez 356ms
+ ✓ src/components/ordenes/orden-form/orden-form.test.tsx > Formulario de orden de servicio > el backend responde 409: muestra su mensaje y no navega 309ms
+ ✓ src/components/ordenes/registrar-pago.test.tsx > Registrar un pago > respuesta 404 en HTML: mensaje de error inesperado sin detalles 211ms
+ ✓ src/components/ordenes/orden-form/orden-form.test.tsx > Formulario de orden de servicio > editar: envía solo los datos de la recepción con PATCH 160ms
+ ✓ src/components/ordenes/registrar-pago.test.tsx > Registrar un pago > el backend responde 500: mensaje de error inesperado (no el técnico) 188ms
+ ✓ src/components/ordenes/registrar-cotizacion.test.tsx > Registrar la cotización aprobada > doble clic en Guardar cotización: se envía una sola vez 627ms
+ ✓ src/components/ordenes/orden-form/orden-form.test.tsx > Formulario de orden de servicio > doble clic en Crear orden: se envía una sola vez 456ms
+ ✓ src/components/inicio/dashboard.test.tsx > Porcentajes de la distribución > 8 órdenes: redondea cada estado 4ms
+ ✓ src/components/inicio/dashboard.test.tsx > Porcentajes de la distribución > 0 órdenes: todo en 0 % 1ms
+ ✓ src/components/inicio/dashboard.test.tsx > Inicio (dashboard) > tarjetas por estado con su número y enlace a la lista filtrada 361ms
+ ✓ src/components/auth/login/login-form.test.tsx > Formulario de inicio de sesión (SWR-AUTH-001) > campos vacíos: muestra los dos errores y no llama a la API 384ms
+ ✓ src/components/inicio/dashboard.test.tsx > Inicio (dashboard) > Dueño: ve el saldo pendiente total y el stock bajo 115ms
+ ✓ src/components/inicio/dashboard.test.tsx > Inicio (dashboard) > Dueño: la tabla de recientes trae la columna Saldo 71ms
+ ✓ src/components/inicio/dashboard.test.tsx > Inicio (dashboard) > Técnico: no ve saldo total, saldos ni stock bajo 62ms
+ ✓ src/components/inicio/dashboard.test.tsx > Inicio (dashboard) > Técnico con stockBajo y saldo por error: tampoco los ve 51ms
+ ✓ src/components/inicio/dashboard.test.tsx > Inicio (dashboard) > distribución: leyenda con número y porcentaje de cada estado 43ms
+ ✓ src/components/inicio/dashboard.test.tsx > Inicio (dashboard) > accesos a los módulos en una fila compacta, según el rol 29ms
+ ✓ src/components/inicio/dashboard.test.tsx > Inicio (dashboard) > sin resumen: muestra el aviso 17ms
+ ✓ src/components/auth/login/login-form.test.tsx > Formulario de inicio de sesión (SWR-AUTH-001) > el backend responde 401: muestra «Credenciales inválidas» y no entra 630ms
+ ✓ src/components/clientes/mensaje-exito.test.tsx > Mensaje de éxito del detalle del cliente > se muestra una vez, limpia la URL y no aparece si el cliente se desactiva 153ms
+ ✓ src/components/clientes/mensaje-exito.test.tsx > Mensaje de éxito del detalle del cliente > acción nueva en la misma página: reemplaza el aviso anterior 18ms
+ ✓ src/components/clientes/mensaje-exito.test.tsx > Mensaje de éxito del detalle del cliente > mensaje vacío (equipo agregado): borra el aviso anterior 18ms
+ ✓ src/components/clientes/mensaje-exito.test.tsx > Mensaje de éxito del detalle del cliente > cliente desactivado: no muestra el mensaje de éxito 4ms
+ ✓ src/components/ordenes/badge-estado.test.tsx > Indicador del estado de la orden > RECIBIDO: muestra su nombre legible 155ms
+ ✓ src/components/ordenes/badge-estado.test.tsx > Indicador del estado de la orden > EN_DIAGNOSTICO: muestra su nombre legible 14ms
+ ✓ src/components/ordenes/badge-estado.test.tsx > Indicador del estado de la orden > EN_REPARACION: muestra su nombre legible 16ms
+ ✓ src/components/ordenes/badge-estado.test.tsx > Indicador del estado de la orden > LISTO_PARA_ENTREGA: muestra su nombre legible 11ms
+ ✓ src/components/ordenes/badge-estado.test.tsx > Indicador del estado de la orden > ENTREGADO: muestra su nombre legible 11ms
+ ✓ src/components/ordenes/badge-estado.test.tsx > Indicador del estado de la orden > los 5 estados usan colores distintos 1ms
+ ✓ src/components/ordenes/badge-estado.test.tsx > Indicador del estado de la orden > EN_DIAGNOSTICO: 'En diagnóstico' con tilde 7ms
+ ✓ src/components/inventario/alerta-stock-bajo.test.tsx > Alerta de existencia baja (SWR-INV-009) > con 2 repuestos bajos: muestra el aviso y el enlace al filtro 199ms
+ ✓ src/components/inventario/alerta-stock-bajo.test.tsx > Alerta de existencia baja (SWR-INV-009) > con 0 repuestos bajos: no muestra el aviso 10ms
+ ✓ src/components/inventario/alerta-stock-bajo.test.tsx > Alerta de existencia baja (SWR-INV-009) > tarjeta del Inicio: muestra 'N repuestos con existencia baja' y enlaza al filtro 29ms
+ ✓ src/components/ordenes/cuenta-orden.test.tsx > Cuenta de la orden > sin cotización: lo explica y no ofrece registrar pago 137ms
+ ✓ src/components/ordenes/cuenta-orden.test.tsx > Cuenta de la orden > con un abono: total, pagado, saldo, 50 % y la fila del pago 293ms
+ ✓ src/components/ordenes/cuenta-orden.test.tsx > Cuenta de la orden > saldo 0: 100 %, muestra la referencia y no ofrece pagar 35ms
+ ✓ src/components/ordenes/cuenta-orden.test.tsx > Cuenta de la orden > saldo 1: ofrece registrar pago 25ms
+ ✓ src/components/ordenes/cuenta-orden.test.tsx > Cuenta de la orden > sin pagos: la tabla lo dice 26ms
+ ✓ src/components/inventario/badge-stock.test.tsx > Indicador de stock bajo en la fila > cantidad igual al mínimo: muestra 'Stock bajo' 111ms
+ ✓ src/components/inventario/badge-stock.test.tsx > Indicador de stock bajo en la fila > cantidad mayor que el mínimo: no muestra nada 4ms
+ ✓ src/components/inventario/badge-stock.test.tsx > Indicador de stock bajo en la fila > cantidad 0: muestra 'Agotado' 7ms
+ ✓ src/components/ui/pagination.test.tsx > PaginationLink (D12) > deshabilitado no pasa funciones al componente cliente 10ms
+ ✓ src/components/ui/pagination.test.tsx > PaginationLink (D12) > habilitado no pasa funciones al componente cliente 1ms
+ ✓ src/components/ui/pagination.test.tsx > PaginationLink (D12) > deshabilitado no tiene href (no navega); habilitado conserva ?pagina= 1ms
+
+ Test Files  15 passed (15)
+      Tests  106 passed (106)
+   Start at  15:15:23
+   Duration  17.94s (environment 39%, tests 25%, import 18%, setup 16%, transform 1%)
+
+Environment  jsdom was created 15 times · 40.88s total, 39% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+
