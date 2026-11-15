@@ -1,0 +1,1312 @@
+{
+  "info": {
+    "name": "MultiServ API",
+    "description": "Pruebas de API del backend de MultiServ (Calidad de Software). Correr completa y en orden con el Collection Runner o con newman (npm run test:api en backend/). Cada corrida crea datos nuevos y ficticios con prefijo API-. Trazabilidad prueba ↔ SWR: docs/calidad/09_Postman/README.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{tokenDueno}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "1 Auth",
+      "description": "Inicio de sesión y permisos por rol (SWR-AUTH-001, SWR-AUTH-008, AJ-03).",
+      "item": [
+        {
+          "name": "API-02 Login con contraseña incorrecta → 401",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Inicio de corrida: limpia lo que dejó la anterior y genera datos nuevos.",
+                  "[\"run\",\"telefono\",\"tokenDueno\",\"tokenTecnico\",\"clienteId\",\"tipoEquipoId\",\"equipoId\",\"ordenId\",\"numeroOrden\",\"valorCotizado\",\"totalPagado\",\"saldo\",\"repuestoId\"].forEach((v) => pm.collectionVariables.unset(v));",
+                  "const run = String(Date.now());",
+                  "pm.collectionVariables.set('run', run);",
+                  "// Celular ficticio de 10 dígitos que empieza por 3 (único por corrida).",
+                  "pm.collectionVariables.set('telefono', '3' + run.slice(-9));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "pm.test('HTTP 401 Unauthorized', () => pm.response.to.have.status(401));",
+                  "pm.test('mensaje \"Credenciales inválidas\" (no revela si el correo existe)', () => {",
+                  "  pm.expect(cuerpo.message).to.eql('Credenciales inválidas');",
+                  "});",
+                  "pm.test('no entrega token', () => pm.expect(cuerpo).to.not.have.property('accessToken'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "SWR-AUTH-001. Un solo intento fallido por corrida; va ANTES del login correcto, que reinicia el contador de intentos (la cuenta nunca llega a bloquearse). También prepara los datos nuevos de la corrida.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"{{correoDueno}}\",\n  \"password\": \"API-incorrecta-123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "API-01 Login Dueño correcto → 200 y token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Si esta petición base falla, el resto de la corrida no tiene sentido:",
+                  "// se detiene para no producir fallos en cadena.",
+                  "function detenerSi(condicion) {",
+                  "  if (condicion) pm.execution.setNextRequest(null);",
+                  "}",
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "pm.test('passwordDueno está configurada en el environment (current value)', () => {",
+                  "  pm.expect(pm.environment.get('passwordDueno'), 'Escribe la contraseña en el current value del environment').to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('accessToken con forma de JWT', () => {",
+                  "  pm.expect(cuerpo.accessToken).to.be.a('string').and.match(/^[\\w-]+\\.[\\w-]+\\.[\\w-]+$/);",
+                  "});",
+                  "pm.test('usuario con rol DUENO y sin datos de contraseña', () => {",
+                  "  pm.expect(cuerpo.usuario.rol).to.eql('DUENO');",
+                  "  pm.expect(cuerpo.usuario).to.not.have.any.keys('password', 'passwordHash');",
+                  "});",
+                  "const ok = pm.response.code === 200 && typeof cuerpo.accessToken === 'string';",
+                  "if (ok) pm.collectionVariables.set('tokenDueno', cuerpo.accessToken);",
+                  "detenerSi(!ok);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "SWR-AUTH-001. Guarda el token del Dueño en la variable de colección tokenDueno (la usa toda la colección).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"{{correoDueno}}\",\n  \"password\": \"{{passwordDueno}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "AUX-01 Login Técnico → 200 y token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Si esta petición base falla, el resto de la corrida no tiene sentido:",
+                  "// se detiene para no producir fallos en cadena.",
+                  "function detenerSi(condicion) {",
+                  "  if (condicion) pm.execution.setNextRequest(null);",
+                  "}",
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('usuario con rol TECNICO', () => pm.expect(cuerpo.usuario && cuerpo.usuario.rol).to.eql('TECNICO'));",
+                  "const ok = pm.response.code === 200 && typeof cuerpo.accessToken === 'string';",
+                  "if (ok) pm.collectionVariables.set('tokenTecnico', cuerpo.accessToken);",
+                  "detenerSi(!ok);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Preparación para API-04. Guarda tokenTecnico.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"{{correoTecnico}}\",\n  \"password\": \"{{passwordTecnico}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "API-03 GET /ordenes sin token → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "pm.test('HTTP 401 Unauthorized', () => pm.response.to.have.status(401));",
+                  "pm.test('no devuelve datos de órdenes', () => pm.expect(cuerpo).to.not.have.property('datos'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ordenes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordenes"
+              ]
+            },
+            "description": "SWR-AUTH-008. Sin token no se accede a ninguna ruta protegida.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "API-04 Técnico pide /repuestos → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "pm.test('HTTP 403 Forbidden (token válido pero rol sin permiso)', () => pm.response.to.have.status(403));",
+                  "pm.test('no devuelve el listado de repuestos', () => pm.expect(cuerpo).to.not.have.property('datos'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/repuestos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "repuestos"
+              ]
+            },
+            "description": "SWR-AUTH-008 / AJ-03. El inventario es solo del Dueño: el Técnico, aunque tenga un token válido, recibe 403.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenTecnico}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 Clientes",
+      "description": "Registro de clientes y teléfono único (SWR-CLI-001, SWR-CLI-004 / AJ-04).",
+      "item": [
+        {
+          "name": "API-05a Crear cliente con teléfono nuevo → 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Si esta petición base falla, el resto de la corrida no tiene sentido:",
+                  "// se detiene para no producir fallos en cadena.",
+                  "function detenerSi(condicion) {",
+                  "  if (condicion) pm.execution.setNextRequest(null);",
+                  "}",
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "pm.test('HTTP 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('guarda el teléfono y el nombre enviados', () => {",
+                  "  pm.expect(cuerpo.telefono).to.eql(pm.collectionVariables.get('telefono'));",
+                  "  pm.expect(cuerpo.nombre).to.eql('API-Cliente ' + pm.collectionVariables.get('run'));",
+                  "});",
+                  "pm.test('devuelve un id numérico', () => pm.expect(cuerpo.id).to.be.a('number'));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('clienteId', cuerpo.id);",
+                  "detenerSi(pm.response.code !== 201);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clientes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clientes"
+              ]
+            },
+            "description": "SWR-CLI-001. Cliente ficticio \"API-Cliente <run>\" con un celular único por corrida.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"API-Cliente {{run}}\",\n  \"telefono\": \"{{telefono}}\",\n  \"autorizaDatos\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "API-05b Repetir el mismo teléfono → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "pm.test('HTTP 409 Conflict', () => pm.response.to.have.status(409));",
+                  "pm.test('mensaje de teléfono duplicado', () => {",
+                  "  pm.expect(cuerpo.message).to.eql('Ya existe un cliente con este teléfono');",
+                  "});",
+                  "pm.test('devuelve el cliente que ya tenía ese teléfono', () => {",
+                  "  pm.expect(cuerpo.cliente.id).to.eql(Number(pm.collectionVariables.get('clienteId')));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clientes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clientes"
+              ]
+            },
+            "description": "SWR-CLI-004 / AJ-04. No se registran dos clientes con el mismo teléfono; la respuesta trae los datos básicos del cliente existente.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"API-Cliente {{run}} duplicado\",\n  \"telefono\": \"{{telefono}}\",\n  \"autorizaDatos\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "AUX-02 Tipos de equipo → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Si esta petición base falla, el resto de la corrida no tiene sentido:",
+                  "// se detiene para no producir fallos en cadena.",
+                  "function detenerSi(condicion) {",
+                  "  if (condicion) pm.execution.setNextRequest(null);",
+                  "}",
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "pm.test('HTTP 200 y al menos un tipo de equipo', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(cuerpo).to.be.an('array').that.is.not.empty;",
+                  "});",
+                  "const ok = Array.isArray(cuerpo) && cuerpo.length > 0;",
+                  "if (ok) pm.collectionVariables.set('tipoEquipoId', cuerpo[0].id);",
+                  "detenerSi(!ok);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tipos-equipo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tipos-equipo"
+              ]
+            },
+            "description": "Preparación: toma el primer tipo de equipo activo."
+          }
+        },
+        {
+          "name": "AUX-03 Registrar equipo del cliente → 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Si esta petición base falla, el resto de la corrida no tiene sentido:",
+                  "// se detiene para no producir fallos en cadena.",
+                  "function detenerSi(condicion) {",
+                  "  if (condicion) pm.execution.setNextRequest(null);",
+                  "}",
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "pm.test('HTTP 201 Created', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('equipoId', cuerpo.id);",
+                  "detenerSi(pm.response.code !== 201);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clientes/{{clienteId}}/equipos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clientes",
+                "{{clienteId}}",
+                "equipos"
+              ]
+            },
+            "description": "Preparación: la orden necesita un equipo del cliente.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipoEquipoId\": {{tipoEquipoId}},\n  \"marca\": \"API-Marca\",\n  \"referencia\": \"API-{{run}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 Órdenes",
+      "description": "Flujo principal de la orden de servicio con sus reglas de negocio (SWR-ORD-002, SWR-ORD-011, SWR-PAY-004, SWR-ENT-003; AJ-06, AJ-10). Cotización de prueba: $ 200.000, abono mínimo 50 %.",
+      "item": [
+        {
+          "name": "API-06 Crear orden → 201 y número MS-AAAA-NNNNN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Si esta petición base falla, el resto de la corrida no tiene sentido:",
+                  "// se detiene para no producir fallos en cadena.",
+                  "function detenerSi(condicion) {",
+                  "  if (condicion) pm.execution.setNextRequest(null);",
+                  "}",
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "pm.test('HTTP 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('numero cumple MS-AAAA-NNNNN', () => {",
+                  "  pm.expect(cuerpo.numero).to.match(/^MS-\\d{4}-\\d{5}$/);",
+                  "});",
+                  "pm.test('el año del número es el año actual en Colombia', () => {",
+                  "  // Colombia es UTC-5 todo el año (sin horario de verano).",
+                  "  const anio = String(new Date(Date.now() - 5 * 3600 * 1000).getUTCFullYear());",
+                  "  pm.expect(String(cuerpo.numero).slice(3, 7)).to.eql(anio);",
+                  "});",
+                  "pm.test('el consecutivo es 00001 o mayor', () => {",
+                  "  pm.expect(Number(String(cuerpo.numero).slice(8))).to.be.at.least(1);",
+                  "});",
+                  "pm.test('la orden nace en RECIBIDO', () => pm.expect(cuerpo.estado).to.eql('RECIBIDO'));",
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('ordenId', cuerpo.id);",
+                  "  pm.collectionVariables.set('numeroOrden', cuerpo.numero);",
+                  "}",
+                  "detenerSi(pm.response.code !== 201);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ordenes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordenes"
+              ]
+            },
+            "description": "SWR-ORD-001, SWR-ORD-002 / AJ-06. El número sigue el formato MS-AAAA-NNNNN con el año en curso (hora de Colombia) y la orden nace en RECIBIDO.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": {{clienteId}},\n  \"equipoId\": {{equipoId}},\n  \"fallaReportada\": \"API- prueba Postman: el equipo no enciende\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "AUX-04 Pasar a EN_DIAGNOSTICO → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Si esta petición base falla, el resto de la corrida no tiene sentido:",
+                  "// se detiene para no producir fallos en cadena.",
+                  "function detenerSi(condicion) {",
+                  "  if (condicion) pm.execution.setNextRequest(null);",
+                  "}",
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('la orden queda en EN_DIAGNOSTICO', () => pm.expect(cuerpo.estado).to.eql('EN_DIAGNOSTICO'));",
+                  "detenerSi(pm.response.code !== 200);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ordenes/{{ordenId}}/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordenes",
+                "{{ordenId}}",
+                "estado"
+              ]
+            },
+            "description": "Preparación: la cotización se registra en diagnóstico. (SWR-ORD-011)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estadoNuevo\": \"EN_DIAGNOSTICO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "AUX-05 Registrar cotización $ 200.000 → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Si esta petición base falla, el resto de la corrida no tiene sentido:",
+                  "// se detiene para no producir fallos en cadena.",
+                  "function detenerSi(condicion) {",
+                  "  if (condicion) pm.execution.setNextRequest(null);",
+                  "}",
+                  "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.set('valorCotizado', 200000);",
+                  "  pm.collectionVariables.set('totalPagado', 0);",
+                  "}",
+                  "detenerSi(pm.response.code !== 200);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ordenes/{{ordenId}}/cotizacion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordenes",
+                "{{ordenId}}",
+                "cotizacion"
+              ]
+            },
+            "description": "Preparación (SWR-PAY-004 / AJ-09): valor cotizado aprobado.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"diagnostico\": \"API- diagnóstico de prueba: falla en la tarjeta de poder\",\n  \"valorCotizado\": 200000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "API-07 Pasar a EN_REPARACION sin abono → 409 FALTA_ABONO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "pm.test('HTTP 409 Conflict', () => pm.response.to.have.status(409));",
+                  "pm.test('motivo = FALTA_ABONO', () => pm.expect(cuerpo.motivo).to.eql('FALTA_ABONO'));",
+                  "pm.test('trae un mensaje para el usuario', () => {",
+                  "  pm.expect(cuerpo.message).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.sendRequest({",
+                  "  url: pm.environment.get('baseUrl') + '/ordenes/' + pm.collectionVariables.get('ordenId'),",
+                  "  method: 'GET',",
+                  "  header: { Authorization: 'Bearer ' + pm.collectionVariables.get('tokenDueno') },",
+                  "}, (err, res) => {",
+                  "  pm.test('la orden sigue en EN_DIAGNOSTICO', () => {",
+                  "    pm.expect(err).to.be.null;",
+                  "    pm.expect(res.json().estado).to.eql('EN_DIAGNOSTICO');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ordenes/{{ordenId}}/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordenes",
+                "{{ordenId}}",
+                "estado"
+              ]
+            },
+            "description": "SWR-ORD-011 / AJ-10. No se pasa a reparación sin el abono mínimo (50 % de la cotización). La orden no cambia de estado.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estadoNuevo\": \"EN_REPARACION\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "API-08 Pago que supera el saldo → 409 SUPERA_SALDO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "pm.test('HTTP 409 Conflict', () => pm.response.to.have.status(409));",
+                  "pm.test('motivo = SUPERA_SALDO', () => pm.expect(cuerpo.motivo).to.eql('SUPERA_SALDO'));",
+                  "pm.test('trae un mensaje para el usuario', () => {",
+                  "  pm.expect(cuerpo.message).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.test('no se registró ningún pago', () => pm.expect(cuerpo).to.not.have.property('pago'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ordenes/{{ordenId}}/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordenes",
+                "{{ordenId}}",
+                "pagos"
+              ]
+            },
+            "description": "SWR-PAY-004. Nunca se cobra de más: un pago mayor al saldo (200.001 > 200.000) se rechaza y no se registra.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": 200001,\n  \"medio\": \"EFECTIVO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "API-09 Abono válido del 50 % → 201 ABONO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Si esta petición base falla, el resto de la corrida no tiene sentido:",
+                  "// se detiene para no producir fallos en cadena.",
+                  "function detenerSi(condicion) {",
+                  "  if (condicion) pm.execution.setNextRequest(null);",
+                  "}",
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "const total = Number(pm.collectionVariables.get('valorCotizado'));",
+                  "const pagadoAntes = Number(pm.collectionVariables.get('totalPagado'));",
+                  "pm.test('HTTP 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('el pago queda como ABONO por 100.000', () => {",
+                  "  pm.expect(cuerpo.pago.tipo).to.eql('ABONO');",
+                  "  pm.expect(cuerpo.pago.valor).to.eql(100000);",
+                  "});",
+                  "pm.test('saldo = total − pagado', () => {",
+                  "  pm.expect(cuerpo.saldo).to.eql(total - (pagadoAntes + 100000));",
+                  "});",
+                  "pm.test('el abono cubre el mínimo del 50 %', () => {",
+                  "  pm.expect(pagadoAntes + cuerpo.pago.valor).to.be.at.least(Math.ceil(total * 0.5));",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('totalPagado', pagadoAntes + cuerpo.pago.valor);",
+                  "  pm.collectionVariables.set('saldo', cuerpo.saldo);",
+                  "}",
+                  "detenerSi(pm.response.code !== 201);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ordenes/{{ordenId}}/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordenes",
+                "{{ordenId}}",
+                "pagos"
+              ]
+            },
+            "description": "SWR-PAY-004. Un pago menor al saldo queda como ABONO y el saldo resultante es total − pagado.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": 100000,\n  \"medio\": \"TRANSFERENCIA\",\n  \"referencia\": \"API-{{run}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "AUX-06 Pasar a EN_REPARACION con abono → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Si esta petición base falla, el resto de la corrida no tiene sentido:",
+                  "// se detiene para no producir fallos en cadena.",
+                  "function detenerSi(condicion) {",
+                  "  if (condicion) pm.execution.setNextRequest(null);",
+                  "}",
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('la orden queda en EN_REPARACION', () => pm.expect(cuerpo.estado).to.eql('EN_REPARACION'));",
+                  "detenerSi(pm.response.code !== 200);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ordenes/{{ordenId}}/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordenes",
+                "{{ordenId}}",
+                "estado"
+              ]
+            },
+            "description": "Con el abono mínimo la misma transición de API-07 ahora sí se permite. (SWR-ORD-011 / AJ-10)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estadoNuevo\": \"EN_REPARACION\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "AUX-07 Pasar a LISTO_PARA_ENTREGA → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Si esta petición base falla, el resto de la corrida no tiene sentido:",
+                  "// se detiene para no producir fallos en cadena.",
+                  "function detenerSi(condicion) {",
+                  "  if (condicion) pm.execution.setNextRequest(null);",
+                  "}",
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('la orden queda en LISTO_PARA_ENTREGA', () => pm.expect(cuerpo.estado).to.eql('LISTO_PARA_ENTREGA'));",
+                  "detenerSi(pm.response.code !== 200);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ordenes/{{ordenId}}/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordenes",
+                "{{ordenId}}",
+                "estado"
+              ]
+            },
+            "description": "Preparación para la entrega. (SWR-ORD-011)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estadoNuevo\": \"LISTO_PARA_ENTREGA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "API-10 Entregar con saldo pendiente → 409 SALDO_PENDIENTE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "pm.test('HTTP 409 Conflict', () => pm.response.to.have.status(409));",
+                  "pm.test('motivo = SALDO_PENDIENTE', () => pm.expect(cuerpo.motivo).to.eql('SALDO_PENDIENTE'));",
+                  "pm.test('trae un mensaje para el usuario', () => {",
+                  "  pm.expect(cuerpo.message).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.sendRequest({",
+                  "  url: pm.environment.get('baseUrl') + '/ordenes/' + pm.collectionVariables.get('ordenId'),",
+                  "  method: 'GET',",
+                  "  header: { Authorization: 'Bearer ' + pm.collectionVariables.get('tokenDueno') },",
+                  "}, (err, res) => {",
+                  "  pm.test('la orden sigue en LISTO_PARA_ENTREGA', () => {",
+                  "    pm.expect(err).to.be.null;",
+                  "    pm.expect(res.json().estado).to.eql('LISTO_PARA_ENTREGA');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ordenes/{{ordenId}}/entregar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordenes",
+                "{{ordenId}}",
+                "entregar"
+              ]
+            },
+            "description": "SWR-ENT-003. No se entrega el equipo mientras haya saldo. La orden sigue en LISTO_PARA_ENTREGA.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recibidoPorNombre\": \"API Receptor {{run}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "API-12 Pagar el saldo → 201 SALDO y saldo 0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Si esta petición base falla, el resto de la corrida no tiene sentido:",
+                  "// se detiene para no producir fallos en cadena.",
+                  "function detenerSi(condicion) {",
+                  "  if (condicion) pm.execution.setNextRequest(null);",
+                  "}",
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "const saldoAntes = Number(pm.collectionVariables.get('saldo'));",
+                  "pm.test('HTTP 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('el pago queda como SALDO por el valor pendiente', () => {",
+                  "  pm.expect(cuerpo.pago.tipo).to.eql('SALDO');",
+                  "  pm.expect(cuerpo.pago.valor).to.eql(saldoAntes);",
+                  "});",
+                  "pm.test('saldo = 0', () => pm.expect(cuerpo.saldo).to.eql(0));",
+                  "pm.test('total pagado = valor cotizado', () => {",
+                  "  const total = Number(pm.collectionVariables.get('valorCotizado'));",
+                  "  pm.expect(Number(pm.collectionVariables.get('totalPagado')) + cuerpo.pago.valor).to.eql(total);",
+                  "});",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('saldo', cuerpo.saldo);",
+                  "detenerSi(pm.response.code !== 201);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ordenes/{{ordenId}}/pagos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordenes",
+                "{{ordenId}}",
+                "pagos"
+              ]
+            },
+            "description": "SWR-PAY-004. Un pago igual al saldo pendiente queda como SALDO y deja la cuenta en cero.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valor\": {{saldo}},\n  \"medio\": \"EFECTIVO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "API-13 Entregar con saldo en cero → 200 ENTREGADO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('la orden queda ENTREGADO', () => {",
+                  "  pm.expect(cuerpo.estado).to.eql('ENTREGADO');",
+                  "  pm.expect(cuerpo.id).to.eql(Number(pm.collectionVariables.get('ordenId')));",
+                  "});",
+                  "pm.test('la garantía vence después de la entrega', () => {",
+                  "  pm.expect(new Date(cuerpo.fechaVencGarantia).getTime()).to.be.above(new Date(cuerpo.fechaEntrega).getTime());",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ordenes/{{ordenId}}/entregar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordenes",
+                "{{ordenId}}",
+                "entregar"
+              ]
+            },
+            "description": "SWR-ENT-003. Con la orden LISTA y saldo 0 se entrega; queda la fecha de entrega y el vencimiento de la garantía.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recibidoPorNombre\": \"API Receptor {{run}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 Inventario",
+      "description": "Existencia baja (SWR-INV-009). Solo el Dueño (AJ-03).",
+      "item": [
+        {
+          "name": "AUX-08 Crear repuesto con existencia baja → 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "pm.test('HTTP 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('nace con existencia baja (cantidad 0 ≤ mínimo 1)', () => {",
+                  "  pm.expect(cuerpo.cantidad).to.eql(0);",
+                  "  pm.expect(cuerpo.cantidad).to.be.at.most(cuerpo.cantidadMinima);",
+                  "  pm.expect(cuerpo.stockBajo).to.eql(true);",
+                  "});",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('repuestoId', cuerpo.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/repuestos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "repuestos"
+              ]
+            },
+            "description": "Preparación (SWR-INV-001): repuesto ficticio con cantidad 0 y mínimo 1, para que el filtro de API-11 nunca esté vacío.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"API-Rep {{run}}\",\n  \"referencia\": \"API-R{{run}}\",\n  \"marcaCompatible\": \"API-Generica\",\n  \"tipoEquipoId\": {{tipoEquipoId}},\n  \"precioVenta\": 10000,\n  \"cantidadInicial\": 0,\n  \"cantidadMinima\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "API-11 Repuestos con existencia baja → todos con cantidad ≤ mínimo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let cuerpo = {};",
+                  "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = {}; }",
+                  "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('la lista no está vacía', () => pm.expect(cuerpo.datos).to.be.an('array').that.is.not.empty);",
+                  "pm.test('todos tienen cantidad ≤ cantidadMinima', () => {",
+                  "  cuerpo.datos.forEach((r) => pm.expect(r.cantidad, r.nombre).to.be.at.most(r.cantidadMinima));",
+                  "});",
+                  "pm.test('todos vienen marcados con stockBajo = true', () => {",
+                  "  cuerpo.datos.forEach((r) => pm.expect(r.stockBajo, r.nombre).to.eql(true));",
+                  "});",
+                  "pm.sendRequest({",
+                  "  url: pm.environment.get('baseUrl') + '/repuestos?soloStockBajo=1&buscar=API-R' + pm.collectionVariables.get('run'),",
+                  "  method: 'GET',",
+                  "  header: { Authorization: 'Bearer ' + pm.collectionVariables.get('tokenDueno') },",
+                  "}, (err, res) => {",
+                  "  pm.test('el repuesto de esta corrida aparece en el filtro', () => {",
+                  "    pm.expect(err).to.be.null;",
+                  "    const ids = res.json().datos.map((r) => r.id);",
+                  "    pm.expect(ids).to.include(Number(pm.collectionVariables.get('repuestoId')));",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/repuestos?soloStockBajo=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "repuestos"
+              ],
+              "query": [
+                {
+                  "key": "soloStockBajo",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "SWR-INV-009. El filtro soloStockBajo=1 devuelve solo repuestos cuya cantidad llega o baja del mínimo, marcados con stockBajo = true."
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "run",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "telefono",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenDueno",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenTecnico",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "clienteId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tipoEquipoId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "equipoId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ordenId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "numeroOrden",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "valorCotizado",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "totalPagado",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "saldo",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "repuestoId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

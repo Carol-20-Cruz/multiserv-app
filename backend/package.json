@@ -19,7 +19,8 @@
     "test:cov": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testRegex=e2e-spec.ts$",
-    "seed": "nest build && node dist/seed.js"
+    "seed": "nest build && node dist/seed.js",
+    "test:api": "node scripts/test-api.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",
@@ -46,6 +47,8 @@
     "@types/node": "^24.0.0",
     "@types/supertest": "^7.0.0",
     "jest": "^30.0.0",
+    "newman": "6.2.3",
+    "newman-reporter-htmlextra": "1.23.1",
     "oxlint": "^1.58.0",
     "prettier": "^3.4.2",
     "prisma": "^7.10.1",
