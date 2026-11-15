@@ -24,7 +24,7 @@ mirar el código, aplicando tres técnicas formales:
 | CN-08 | Pasa | `CN-08.png` |
 | CN-09 | Pasa | `CN-09a.png`, `CN-09b.png` |
 | CN-10 | Pasa | `CN-10.png` |
-| CN-11 | Pasa | `CN-11b.png` |
+| CN-11 | Pasa | `CN-11b.png` (ver nota) |
 | CN-12 | Pasa | `CN-12a.png`, `CN-12b.png` |
 | CN-13 | Pasa | `CN-13a.png`, `CN-13b.png`, `CN-13c.png` |
 | CN-14 | Pasa | `CN-14a.png`, `CN-14b.png` |
@@ -45,6 +45,9 @@ Notas de la ejecución:
   un defecto.
 - **CN-09 se repitió en una orden nueva (17)** por un error de ejecución: el
   pago se registró dos veces en la orden 16.
+- **CN-11:** el estado bloqueado (entrega con saldo pendiente) no tiene
+  captura en esta ejecución; está cubierto por E2E-02 (Playwright) y
+  API-10 SALDO_PENDIENTE (Postman).
 
 ## Archivos
 
@@ -114,7 +117,7 @@ Donde hay un antes y un después, usar dos capturas:
   correcta)
 - `CN-09a.png` (abono de $ 90.000, botón deshabilitado) y `CN-09b.png`
   (orden en reparación)
-- `CN-11a.png` (entrega bloqueada) y `CN-11b.png` (entregada)
+- `CN-11b.png` (entregada)
 - `CN-13a.png` (0), `CN-13b.png` (tope + 1) y `CN-13c.png` (tope guardado)
 - `CN-14a.png` (Stock bajo) y `CN-14b.png` (sin la etiqueta)
 
