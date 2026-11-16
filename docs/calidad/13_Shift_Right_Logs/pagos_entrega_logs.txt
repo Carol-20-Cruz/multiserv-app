@@ -1,0 +1,132 @@
+MultiServ - Evidencia Shift Right (logs del backend)
+Modulo: Pagos, entrega y dashboard del Inicio, Entrega B - prueba real parte 2 (feature/pagos-entrega)
+Fecha de ejecucion: 10/11/2026 (abono, paso a listo e intento de entrega con saldo) y 11/11/2026
+                    (pago del saldo, entrega e Inicio como Dueno y como Tecnico)
+Ambiente: backend NestJS local (puerto 3001, nest start) conectado a Supabase;
+          frontend Next.js local (puerto 3000, next dev). Recorrido hecho por la usuaria en el navegador;
+          el intento de entrega con saldo se hizo con una llamada directa a POST /ordenes/2/entregar
+          (el boton en pantalla esta deshabilitado y no envia la peticion).
+SWR relacionados: SWR-PAY-004, SWR-ENT-003 (ajustes AJ-09 y AJ-10)
+Nota de privacidad: las lineas de log (JSON) no contienen la referencia del pago ni el nombre de quien
+recibe el equipo; los eventos PAYMENT_REGISTERED y ORDER_DELIVERED solo llevan ids, tipo, medio, montos
+y estados. Se verifico buscando en el archivo y en las salidas completas de ambos dias el nombre de quien
+recibio, la referencia de la transferencia y el nombre de la prueba de bloqueo: 0 coincidencias.
+Se omiten: lineas internas de NestJS (NEST_LOG) y los eventos de verificacion tecnica de los defectos 9 y 10
+del 10/11/2026 (LOGIN_SUCCESS, VALIDATION_FAILED y un PAYMENT_REJECTED SUPERA_SALDO de 250001 que no creo
+pagos), ademas del LOGIN_SUCCESS del Tecnico para la llamada directa.
+
+Capturas: las de pagos y entrega son de la pantalla de la usuaria (sin la barra del navegador).
+(*) Las del Inicio se tomaron de nuevo el 11/11/2026 con Chrome sin cabeza a 1536 x 864 px
+(1920 px con zoom de 125 %), con los mismos datos y ya con el arreglo visual de la leyenda
+(commit 3d0518a); las originales mostraban "Listo para entrega 0 (0 %)" partido en dos lineas.
+Las capturas de los defectos 9 y 10 estan en capturas/defectos/.
+
+Datos usados:
+  ordenId 2 = MS-2026-00002, cotizada en $ 250.000 (abono minimo 50 % = $ 125.000), garantia de 90 dias
+  ordenId 1 = MS-2026-00001, cotizada en $ 180.001 sin pagos (aparece en el saldo por cobrar del Inicio)
+Usuarios: userId 1 = Duena (recorrido en pantalla), userId 2 = Tecnico (llamada directa a /entregar e Inicio).
+
+Estado final (consulta de solo lectura, 11/11/2026): orden 2 en ENTREGADO, 2 pagos (abono de $ 125.000
+en efectivo y saldo de $ 125.000 por transferencia con referencia registrada), saldo $ 0,
+entregadoPorId 1, quien recibe registrado, vencimiento de garantia 9/02/2027 11:59 p. m. (hora de Colombia).
+
+######################################################################
+PARTE 1 - 10/11/2026
+######################################################################
+
+======================================================================
+ESCENARIO 0 - Inicio de la aplicacion
+Resultado esperado: evento INFO APP_STARTED
+Resultado obtenido: PASS
+======================================================================
+{"timestamp":"2026-11-10T15:00:03.416Z","level":"INFO","context":"Bootstrap","event":"APP_STARTED","message":"Servidor iniciado","metadata":{"port":3001}}
+
+======================================================================
+ESCENARIO 1 - Login de la Duena
+Resultado esperado: HTTP 200 y LOGIN_SUCCESS solo con userId
+Resultado obtenido: PASS
+======================================================================
+{"timestamp":"2026-11-10T15:09:00.944Z","level":"INFO","context":"AuthService","event":"LOGIN_SUCCESS","message":"Inicio de sesión exitoso","metadata":{"userId":1}}
+
+======================================================================
+ESCENARIO 2 - Abono de $ 125.000 en efectivo (SWR-PAY-004)
+Resultado esperado: PAYMENT_REGISTERED tipo ABONO, medio EFECTIVO, saldoResultante 125000
+Resultado obtenido: PASS
+Capturas: capturas/pagos-entrega/detalle-sin-pagos.png, capturas/pagos-entrega/cuenta-sin-pagos-entrega-deshabilitada.png (antes),
+          capturas/pagos-entrega/dialogo-registrar-abono.png, capturas/pagos-entrega/cuenta-abono-efectivo.png (despues)
+======================================================================
+{"timestamp":"2026-11-10T15:29:51.030Z","level":"INFO","context":"OrdenesService","event":"PAYMENT_REGISTERED","message":"Pago registrado","metadata":{"ordenId":2,"pagoId":1,"tipo":"ABONO","medio":"EFECTIVO","valor":125000,"saldoResultante":125000,"userId":1}}
+
+======================================================================
+ESCENARIO 3 - Paso a reparacion (AJ-10: abono minimo cubierto) y a listo para entrega
+Resultado esperado: dos ORDER_STATUS_CHANGED: EN_DIAGNOSTICO -> EN_REPARACION -> LISTO_PARA_ENTREGA
+Resultado obtenido: PASS
+Capturas: capturas/pagos-entrega/dialogo-pasar-a-reparacion.png, capturas/pagos-entrega/dialogo-pasar-a-listo.png
+======================================================================
+{"timestamp":"2026-11-10T15:31:17.802Z","level":"INFO","context":"OrdenesService","event":"ORDER_STATUS_CHANGED","message":"Estado de la orden cambiado","metadata":{"ordenId":2,"de":"EN_DIAGNOSTICO","a":"EN_REPARACION","userId":1}}
+{"timestamp":"2026-11-10T15:31:41.210Z","level":"INFO","context":"OrdenesService","event":"ORDER_STATUS_CHANGED","message":"Estado de la orden cambiado","metadata":{"ordenId":2,"de":"EN_REPARACION","a":"LISTO_PARA_ENTREGA","userId":1}}
+
+======================================================================
+ESCENARIO 4 - Intento de entrega con saldo $ 125.000 (SWR-ENT-003)
+Resultado esperado: en pantalla el boton Entregar esta deshabilitado; la llamada directa a
+                    POST /ordenes/2/entregar responde 409 SALDO_PENDIENTE y queda DELIVERY_BLOCKED_BALANCE (WARN)
+Resultado obtenido: 409 SALDO_PENDIENTE; la orden sigue en LISTO_PARA_ENTREGA - PASS
+Captura: capturas/pagos-entrega/listo-saldo-pendiente-bloquea-entrega.png
+======================================================================
+{"timestamp":"2026-11-10T15:32:37.628Z","level":"WARN","context":"OrdenesService","event":"DELIVERY_BLOCKED_BALANCE","message":"Entrega bloqueada por saldo pendiente","metadata":{"ordenId":2,"saldo":125000,"userId":2}}
+
+######################################################################
+PARTE 2 - 11/11/2026
+######################################################################
+
+======================================================================
+ESCENARIO 5 - Inicio de la aplicacion
+Resultado esperado: evento INFO APP_STARTED
+Resultado obtenido: PASS
+======================================================================
+{"timestamp":"2026-11-11T13:06:04.202Z","level":"INFO","context":"Bootstrap","event":"APP_STARTED","message":"Servidor iniciado","metadata":{"port":3001}}
+
+======================================================================
+ESCENARIO 6 - Login de la Duena
+Resultado esperado: HTTP 200 y LOGIN_SUCCESS solo con userId
+Resultado obtenido: PASS
+Captura: capturas/pagos-entrega/lista-ordenes-listo-para-entrega.png
+======================================================================
+{"timestamp":"2026-11-11T13:17:27.271Z","level":"INFO","context":"AuthService","event":"LOGIN_SUCCESS","message":"Inicio de sesión exitoso","metadata":{"userId":1}}
+
+======================================================================
+ESCENARIO 7 - Pago del saldo de $ 125.000 por transferencia con referencia (SWR-PAY-004)
+Resultado esperado: PAYMENT_REGISTERED tipo SALDO, medio TRANSFERENCIA, saldoResultante 0; la referencia
+                    se guarda en el pago pero no aparece en el log
+Resultado obtenido: la tarjeta Cuenta muestra saldo $ 0 y el boton Entregar queda habilitado - PASS
+Captura: capturas/pagos-entrega/cuenta-saldo-transferencia-saldo-cero.png (la referencia se ve en pantalla, no en el log)
+======================================================================
+{"timestamp":"2026-11-11T13:23:08.438Z","level":"INFO","context":"OrdenesService","event":"PAYMENT_REGISTERED","message":"Pago registrado","metadata":{"ordenId":2,"pagoId":2,"tipo":"SALDO","medio":"TRANSFERENCIA","valor":125000,"saldoResultante":0,"userId":1}}
+
+======================================================================
+ESCENARIO 8 - Entrega del equipo con saldo $ 0 (SWR-ENT-003)
+Resultado esperado: ORDER_DELIVERED solo con ordenId y userId (sin el nombre de quien recibe); la orden pasa a
+                    ENTREGADO con fecha de entrega y vencimiento de garantia a 90 dias
+Resultado obtenido: orden en ENTREGADO; garantia hasta 9/02/2027 11:59 p. m. - PASS
+Capturas: capturas/pagos-entrega/detalle-entregado-garantia.png (quien recibe se ve en pantalla, no en el log),
+          capturas/pagos-entrega/historial-entregado.png
+======================================================================
+{"timestamp":"2026-11-11T13:24:23.012Z","level":"INFO","context":"OrdenesService","event":"ORDER_DELIVERED","message":"Equipo entregado","metadata":{"ordenId":2,"userId":1}}
+
+======================================================================
+ESCENARIO 9 - Inicio (dashboard) como Tecnico
+Resultado esperado: LOGIN_SUCCESS solo con userId; el Tecnico no ve saldos por cobrar ni stock bajo
+Resultado obtenido: el Inicio no muestra saldos ni stock bajo - PASS
+Capturas: capturas/pagos-entrega/lista-ordenes-entregado-tecnico.png,
+          capturas/dashboard/inicio-tecnico.png, capturas/dashboard/inicio-tecnico-recientes.png (*)
+======================================================================
+{"timestamp":"2026-11-11T13:26:40.476Z","level":"INFO","context":"AuthService","event":"LOGIN_SUCCESS","message":"Inicio de sesión exitoso","metadata":{"userId":2}}
+
+======================================================================
+ESCENARIO 10 - Inicio (dashboard) como Duena
+Resultado esperado: LOGIN_SUCCESS solo con userId; el Inicio muestra datos reales: saldo por cobrar
+                    $ 180.001 (orden 1; la orden 2 ya no suma porque quedo en $ 0) y repuestos con stock bajo
+Resultado obtenido: saldo por cobrar $ 180.001 y stock bajo 2 - PASS
+Capturas: capturas/dashboard/inicio-dueno.png, capturas/dashboard/inicio-dueno-recientes.png (*)
+======================================================================
+{"timestamp":"2026-11-11T13:32:20.969Z","level":"INFO","context":"AuthService","event":"LOGIN_SUCCESS","message":"Inicio de sesión exitoso","metadata":{"userId":1}}

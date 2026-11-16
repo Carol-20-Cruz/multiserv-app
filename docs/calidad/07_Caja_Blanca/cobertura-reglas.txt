@@ -1,0 +1,32 @@
+Fecha de la corrida: 2026-11-15 15:15 (local, Windows, Node v26.13.0)
+Comando (desde backend/): npm run test:cov -- --collectCoverageFrom='src/**/reglas/*.ts' --collectCoverageFrom='!src/**/*.spec.ts' --coverageReporters=text
+
+
+> backend@0.0.1 test:cov
+> node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --collectCoverageFrom=src/**/reglas/*.ts --collectCoverageFrom=!src/**/*.spec.ts --coverageReporters=text
+
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |     100 |    99.44 |     100 |     100 |                   
+ auth/reglas       |     100 |      100 |     100 |     100 |                   
+  bloqueo.ts       |     100 |      100 |     100 |     100 |                   
+  permisos.ts      |     100 |      100 |     100 |     100 |                   
+  roles.ts         |     100 |      100 |     100 |     100 |                   
+ clientes/reglas   |     100 |      100 |     100 |     100 |                   
+  telefono.ts      |     100 |      100 |     100 |     100 |                   
+ inventario/reglas |     100 |      100 |     100 |     100 |                   
+  stock.ts         |     100 |      100 |     100 |     100 |                   
+ ordenes/reglas    |     100 |    99.15 |     100 |     100 |                   
+  abono.ts         |     100 |      100 |     100 |     100 |                   
+  cotizacion.ts    |     100 |      100 |     100 |     100 |                   
+  estados.ts       |     100 |    96.15 |     100 |     100 | 91                
+  numero-orden.ts  |     100 |      100 |     100 |     100 |                   
+  saldo.ts         |     100 |      100 |     100 |     100 |                   
+-------------------|---------|----------|---------|---------|-------------------
+
+Test Suites: 20 passed, 20 total
+Tests:       359 passed, 359 total
+Snapshots:   0 total
+Time:        5.092 s, estimated 6 s
+Ran all test suites.

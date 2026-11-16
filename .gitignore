@@ -28,3 +28,21 @@ backend/skills-lock.json
 # Logs y sistema
 *.log
 .DS_Store
+
+# Archivos temporales de Office
+~$*
+
+# Next.js (frontend)
+frontend/out/
+frontend/next-env.d.ts
+*.tsbuildinfo
+.vercel/
+*.pem
+
+# Archivos que genera next dev para asistentes de IA
+frontend/AGENTS.md
+frontend/CLAUDE.md
+
+# Playwright: trazas, capturas y video de fallos (guardan lo escrito en el
+# login, incluida la contraseña). El reporte HTML se revisa antes de subirlo.
+docs/calidad/10_Playwright/resultados/

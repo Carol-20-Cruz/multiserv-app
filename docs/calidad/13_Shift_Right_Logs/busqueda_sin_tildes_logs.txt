@@ -1,0 +1,80 @@
+MultiServ - Evidencia Shift Right (logs del backend)
+Modulo: Busquedas sin tildes en clientes, ordenes e inventario - Defecto 7 (feature/ordenes)
+Fecha de ejecucion: 10/11/2026
+Ambiente: backend NestJS local (puerto 3001, build de produccion) conectado a Supabase;
+          frontend Next.js local (puerto 3000, next start). Prueba hecha desde la pantalla
+          con Chrome sin cabeza (clics y tecleo reales), como Dueno (inventario es solo del Dueno, AJ-03).
+Defecto: buscar "Maria Fernanda Ortiz" no encontraba a "María Fernanda Ortiz".
+Correccion: columna "nombreBusqueda" en Cliente y Repuesto (sin tildes y en minusculas), llenada por
+un trigger de la base con unaccent (migracion 20261110134515_busqueda_sin_tildes); el backend
+normaliza el texto buscado con la misma regla (textoBusqueda) y busca en esa columna.
+Nota de privacidad: las busquedas NO generan eventos de log (el texto buscado puede ser un dato
+personal). Se verifico buscando en el archivo los nombres y telefonos de los clientes encontrados,
+los textos buscados, "Bomba", "desag", tokens JWT, hashes bcrypt, la contrasena del seed, el secreto
+JWT y los correos: 0 coincidencias. No hubo eventos WARN ni ERROR.
+Se omiten las lineas internas de arranque de NestJS (NEST_LOG).
+
+======================================================================
+PASO PREVIO - Ensayo de la migracion dentro de BEGIN ... ROLLBACK (sin Prisma)
+Resultado esperado: la migracion corre completa; despues del ROLLBACK no queda nada
+Resultado obtenido: texto_busqueda('María Desagüe Peña') = 'maria desague pena' con search_path vacio;
+                    4 clientes y 6 repuestos llenos (0 vacios, 0 distintos); el trigger llena la columna
+                    en INSERT y en UPDATE del nombre. Tras el ROLLBACK: 0 extensiones, 0 funciones,
+                    0 columnas y 0 filas en _prisma_migrations - PASS
+======================================================================
+
+======================================================================
+PASO PREVIO - prisma migrate deploy y verificacion de solo lectura
+Resultado esperado: migracion terminada sin errores; unaccent en el esquema extensions; funciones con
+                    search_path vacio; 2 triggers; filas existentes llenas; sin indices sobre nombreBusqueda
+Resultado obtenido: unaccent 1.1 en extensions; texto_busqueda y llenar_nombre_busqueda con search_path="";
+                    triggers cliente_nombre_busqueda y repuesto_nombre_busqueda; Cliente 4/4 y Repuesto 6/6
+                    llenos y coherentes; 0 indices; migracion terminada, sin revertir y sin logs de error - PASS
+======================================================================
+
+======================================================================
+ESCENARIO 0 - Inicio de la aplicacion
+Resultado esperado: evento INFO APP_STARTED
+Resultado obtenido: PASS
+======================================================================
+{"timestamp":"2026-11-10T13:55:02.615Z","level":"INFO","context":"Bootstrap","event":"APP_STARTED","message":"Servidor iniciado","metadata":{"port":3001}}
+
+======================================================================
+ESCENARIO 1 - Login del Dueno
+Resultado esperado: HTTP 200 y LOGIN_SUCCESS solo con userId
+Resultado obtenido: PASS
+======================================================================
+{"timestamp":"2026-11-10T13:55:26.241Z","level":"INFO","context":"AuthService","event":"LOGIN_SUCCESS","message":"Inicio de sesión exitoso","metadata":{"userId":1}}
+
+======================================================================
+ESCENARIO 2 - Clientes: buscar "Maria Fernanda" (sin tilde)
+Resultado esperado: encuentra a "María Fernanda Ortiz"
+Resultado obtenido: "2 resultado(s) para “Maria Fernanda”": los dos clientes "María Fernanda Ortiz"
+                    registrados (con telefonos distintos) - PASS
+Captura: capturas/busqueda/busqueda-clientes-maria-fernanda.png
+======================================================================
+(sin eventos de log: la busqueda no se registra)
+
+======================================================================
+ESCENARIO 3 - Inventario: buscar "desague" (sin dieresis)
+Resultado esperado: encuentra "Bomba de desagüe"
+Resultado obtenido: "1 repuesto(s) con los filtros aplicados": Bomba de desagüe, W10276397 - PASS
+Captura: capturas/busqueda/busqueda-inventario-desague.png
+======================================================================
+(sin eventos de log: la busqueda no se registra)
+
+======================================================================
+ESCENARIO 4 - Ordenes: buscar "ortiz" (minusculas)
+Resultado esperado: encuentra la orden MS-2026-00002 (cliente María Fernanda Ortiz)
+Resultado obtenido: "1 orden(es) con los filtros aplicados": MS-2026-00002 - PASS
+Captura: capturas/busqueda/busqueda-ordenes-ortiz.png
+======================================================================
+(sin eventos de log: la busqueda no se registra)
+
+======================================================================
+ESCENARIO 5 - Control: clientes "MARÍA fernanda" (con tilde y mayusculas)
+Resultado esperado: el mismo resultado que sin tilde
+Resultado obtenido: "2 resultado(s)", los mismos dos clientes - PASS
+Captura: capturas/busqueda/busqueda-clientes-con-tilde.png
+======================================================================
+(sin eventos de log: la busqueda no se registra)
