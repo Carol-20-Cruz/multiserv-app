@@ -1,0 +1,52 @@
+
+Limpieza de datos de prueba — modo SIMULACIÓN (no borra nada)
+Prefijos (al inicio del texto): CN-, API-, E2E-, SR-, EXP-
+Patrones de Playwright (al inicio del texto): Cliente E2E-, Repuesto E2E-, MarcaE2E, E2E0, Prueba E2E-, Recibe E2E-
+
+Tabla                   Total   De prueba   Quedarían
+Cliente                     4           0           4
+Equipo                      6           0           6
+OrdenServicio               2           0           2
+HistorialEstado             7           0           7
+Avance                      0           0           0
+Pago                        2           0           2
+Cotizacion                  0           0           0
+CotizacionItem              0           0           0
+Repuesto                    6           0           6
+MovimientoInventario        7           0           7
+Usuario                     2           0           2   no se toca
+Configuracion               1           0           1   no se toca
+TipoEquipo                  6           0           6   no se toca
+ConsecutivoOrden            1           0           1   no se toca (los números no se reutilizan)
+Auditoria                   0           0           0   no se toca (sin llave hacia los datos)
+
+Por prefijo (registros que lo llevan ellos mismos):
+  Cliente:       CN- 0 · API- 0 · E2E- 0 · SR- 0 · EXP- 0 · Playwright 0
+  Equipo:        CN- 0 · API- 0 · E2E- 0 · SR- 0 · EXP- 0 · Playwright 0
+  OrdenServicio: CN- 0 · API- 0 · E2E- 0 · SR- 0 · EXP- 0 · Playwright 0
+  Repuesto:      CN- 0 · API- 0 · E2E- 0 · SR- 0 · EXP- 0 · Playwright 0
+
+Equipos de prueba de clientes reales (se borra el equipo, el cliente queda): ninguno
+Órdenes de prueba de clientes y equipos reales: ninguna
+
+NO incluidos (la marca de prueba no está al inicio; p. ej. "Cliente E2E-01 …"):
+  Cliente           0
+  Equipo            0
+  OrdenServicio     0
+  Repuesto          0
+
+Quedarían sin ninguna marca de prueba (solo conteos):
+  Cliente                   4
+  Equipo                    6
+  OrdenServicio             2
+  HistorialEstado           7
+  Avance                    0
+  Pago                      2
+  Cotizacion                0
+  CotizacionItem            0
+  Repuesto                  6
+  MovimientoInventario      7
+
+Conflictos: ninguno
+
+Simulación: no se borró nada. Para borrar: --ejecutar
