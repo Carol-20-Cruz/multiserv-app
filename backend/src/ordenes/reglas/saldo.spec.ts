@@ -360,6 +360,7 @@ describe('Regla del vencimiento de la garantía', () => {
     expect(vence.toISOString()).toBe('2026-12-12T04:59:59.999Z');
   });
 
+  // UT-11 · SWR-ENT-003
   // Frontera: 0 días -> vence al final del mismo día de la entrega.
   it('0 días: vence al final del día de la entrega', () => {
     // Act
