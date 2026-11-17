@@ -243,7 +243,7 @@ Playwright no levanta ni compila la app: usa los servidores que ya están encend
 - **Locators semánticos:** `getByRole`, `getByLabel` y `getByText`, con aserciones `expect` que esperan solas (auto-waiting). **No hay ningún `waitForTimeout`.**
 - **Independencia:** cada prueba inicia sesión y crea sus datos. Ninguna usa lo que dejó otra, así que se pueden correr solas o en cualquier orden.
 - **Datos únicos y ficticios:** sufijo `AAAAMMDD-HHMMSS-xxxx` en nombres y referencias, y teléfono de 10 dígitos armado con la hora. Todo lleva el prefijo **E2E**.
-- **Datos que quedan en la base por corrida:** 2 clientes con un equipo cada uno, 2 órdenes (una entregada y otra lista con saldo), 3 pagos, 1 repuesto y su entrada. Por ahora no se borran.
+- **Datos que quedan en la base por corrida:** 2 clientes con un equipo cada uno, 2 órdenes (una entregada y otra lista con saldo), 3 pagos, 1 repuesto y su entrada. Los datos de prueba se borraron el 16-nov-2026 con el script de la carpeta 15 (`backend/scripts/limpiar-datos-prueba.ts`).
 - **E2E-03 no bloquea la cuenta:** hace un solo intento fallido y después el login correcto pone el contador en 0 (AJ-02).
 - **Fallos:** `trace: retain-on-failure`, captura y video solo cuando una prueba falla. Hay `retries: 0`, por eso no se usa `on-first-retry`, que nunca grabaría nada.
 - **`workers: 1`:** `next dev` compila cada página la primera vez y la base está en la nube, así que en serie los tiempos son estables.

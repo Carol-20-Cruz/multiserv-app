@@ -27,7 +27,7 @@ multiserv-app/
 │   ├── src/            # Código fuente
 │   ├── test/           # Pruebas end-to-end
 │   └── .env.example    # Plantilla de variables de entorno
-├── frontend/           # Aplicación Next.js (próximamente)
+├── frontend/           # Aplicación Next.js
 └── docs/
     └── calidad/        # Documentación de calidad de software
 ```
