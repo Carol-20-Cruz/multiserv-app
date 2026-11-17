@@ -18,6 +18,7 @@ describe('Reglas de la cotización aprobada', () => {
     expect(resultado).toEqual({ permitido: true });
   });
 
+  // UT-08 · SWR-PAY-004 (ajuste AJ-09)
   // Camino 3 (frontera): con 1 pago el valor queda fijo (respuesta de la dueña).
   it('EN_DIAGNOSTICO con 1 pago: TIENE_PAGOS', () => {
     // Arrange: orden EN_DIAGNOSTICO con 1 pago registrado; van directo

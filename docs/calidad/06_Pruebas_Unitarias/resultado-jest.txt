@@ -1,193 +1,260 @@
-Fecha de la corrida: 2026-11-15 15:16 (local, Windows, Node v26.13.0)
+Fecha de la corrida: 2026-11-16 21:06 (local, Windows, Node v26.13.0)
 Comando (desde backend/): npm test -- --runInBand --verbose --reporters=default
 
 
 > backend@0.0.1 test
 > node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --verbose --reporters=default
 
+(node:21596) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
 PASS src/auth/guards/roles.guard.spec.ts
   RolesGuard dentro de NestJS
-    √ Técnico en ruta solo Dueño: responde 403 (30 ms)
-    √ Dueño en ruta solo Dueño: responde 200 (6 ms)
+    √ Técnico en ruta solo Dueño: responde 403 (39 ms)
+    √ Dueño en ruta solo Dueño: responde 200 (9 ms)
     √ Técnico en ruta de clientes: responde 200 (4 ms)
     √ TECNICO en órdenes (cambiar estado): responde 200 (5 ms)
-    √ DUENO en órdenes (cambiar estado): responde 200 (8 ms)
-    √ Técnico en repuestos: 403 y log ACCESS_DENIED sin datos de la petición (8 ms)
-    √ Dueño en repuestos: responde 200 (5 ms)
-    √ sin token: responde 401 (9 ms)
+    √ DUENO en órdenes (cambiar estado): responde 200 (4 ms)
+    √ Técnico en repuestos: 403 y log ACCESS_DENIED sin datos de la petición (4 ms)
+    √ Dueño en repuestos: responde 200 (4 ms)
+    √ sin token: responde 401 (3 ms)
 
 PASS src/ordenes/ordenes.service.spec.ts
   OrdenesService (Prisma simulado)
-    √ crear: número del año, configuración copiada, historial y log (8 ms)
+    √ crear: número del año, configuración copiada, historial y log (6 ms)
     √ crear el 1/1/2027 a las 00:00 en Colombia: MS-2027-00001 (2 ms)
     √ crear: el log no contiene la falla reportada (1 ms)
-    √ crear con equipo de otro cliente: 400 y sin transacción (19 ms)
+    √ crear con equipo de otro cliente: 400 y sin transacción (22 ms)
     √ crear para un cliente desactivado: 409 (1 ms)
     √ crear con responsable inactivo: 400 (1 ms)
     √ crear en TALLER con dirección: la guarda como null (1 ms)
-    √ detalle en diagnóstico con cotización y sin pagos: bloqueo FALTA_ABONO (2 ms)
+    √ detalle en diagnóstico con cotización y sin pagos: bloqueo FALTA_ABONO (1 ms)
     √ detalle en LISTO_PARA_ENTREGA: sin siguiente ni bloqueo (1 ms)
     √ detalle de una orden inexistente: 404 (1 ms)
-    √ editar una orden entregada: 409 (1 ms)
+    √ editar una orden entregada: 409 (2 ms)
     √ pasar a DOMICILIO sin dirección: 400 en direccionVisita (1 ms)
-    √ editar datos válidos: actualiza y registra ORDER_UPDATED
-    √ primera cotización: guarda valor y fecha; log con correccion false (3 ms)
+    √ editar datos válidos: actualiza y registra ORDER_UPDATED (1 ms)
+    √ primera cotización: guarda valor y fecha; log con correccion false (2 ms)
     √ corregir sin pagos: log con valorAnterior y correccion true (1 ms)
-    √ corregir con 1 pago: 409 TIENE_PAGOS, sin cambios y log WARN (2 ms)
-    √ cotizar en RECIBIDO: 409 ESTADO_NO_PERMITE (7 ms)
-    √ cotizar una orden inexistente: 404 (1 ms)
+    √ corregir con 1 pago: 409 TIENE_PAGOS, sin cambios y log WARN (1 ms)
+    √ cotizar en RECIBIDO: 409 ESTADO_NO_PERMITE (1 ms)
+    √ cotizar una orden inexistente: 404
     √ RECIBIDO -> EN_DIAGNOSTICO: cambia, deja historial con comentario y log (2 ms)
     √ a reparación con abono insuficiente: 409 FALTA_ABONO con montos en el log (1 ms)
-    √ a reparación con 90001 de 90001: pasa a EN_REPARACION (1 ms)
-    √ a reparación sin cotización: 409 FALTA_VALOR_COTIZADO (2 ms)
-    √ segundo clic al mismo estado: 409 MISMO_ESTADO (1 ms)
+    √ a reparación con 90001 de 90001: pasa a EN_REPARACION
+    √ a reparación sin cotización: 409 FALTA_VALOR_COTIZADO (1 ms)
+    √ segundo clic al mismo estado: 409 MISMO_ESTADO
     √ LISTO -> ENTREGADO por cambiar estado: 409 ENTREGA_POR_OTRA_RUTA (1 ms)
-    √ buscar "Ortíz": número, y cliente por nombreBusqueda normalizado (2 ms)
+    √ buscar "Ortíz": número, y cliente por nombreBusqueda normalizado (3 ms)
     √ buscar "MS-2026-00002": incluye número, nombre y teléfono (1 ms)
-    √ abono de 125000 sobre 250000: ABONO, saldo 125000 y log sin referencia (2 ms)
+    √ abono de 125000 sobre 250000: ABONO, saldo 125000 y log sin referencia (1 ms)
+    √ pago registrado: duracionMs es la diferencia redondeada entre inicio y fin (1 ms)
     √ pago: bloquea la orden antes de sumar los pagos (1 ms)
     √ pago de 125000 con saldo 125000: SALDO y saldo 0 (1 ms)
     √ pago de 125001 con saldo 125000: 409 SUPERA_SALDO y log WARN (1 ms)
     √ pago en ENTREGADO (cotizado 250000, pagado 250000): 409 ORDEN_ENTREGADA (1 ms)
-    √ pago en RECIBIDO (cotizado null, pagado 0): 409 SIN_VALOR_COTIZADO (1 ms)
+    √ pago en RECIBIDO (cotizado null, pagado 0): 409 SIN_VALOR_COTIZADO (11 ms)
     √ pago en EN_DIAGNOSTICO (cotizado null, pagado 0): 409 SIN_VALOR_COTIZADO (1 ms)
     √ pago a una orden inexistente: 404 (1 ms)
-    √ entregar LISTO con saldo 0: ENTREGADO, garantía, historial y log sin nombre (2 ms)
-    √ entregar LISTO con saldo 1: 409 SALDO_PENDIENTE y DELIVERY_BLOCKED_BALANCE (7 ms)
-    √ entregar con saldo 125000: el mensaje muestra $ 125.000 (1 ms)
+    √ entregar LISTO con saldo 0: ENTREGADO, garantía, historial y log sin nombre (4 ms)
+    √ entregar LISTO con saldo 1: 409 SALDO_PENDIENTE y DELIVERY_BLOCKED_BALANCE (6 ms)
+    √ entregar con saldo 125000: el mensaje muestra $ 125.000
     √ entregar en EN_REPARACION con saldo 0: 409 NO_ESTA_LISTA (1 ms)
     √ segundo clic en entregar: 409 YA_ENTREGADO (1 ms)
-    √ detalle en LISTO con saldo 0: saldo, puedeEntregar y pagos (1 ms)
+    √ detalle en LISTO con saldo 0: saldo, puedeEntregar y pagos
     √ detalle sin cotización: saldo null y no puede entregar (1 ms)
-    √ resumen del Dueño: conteo con ceros, saldo total y saldo por orden (2 ms)
-    √ resumen del Técnico: sin saldo total ni saldos, ni consulta montos (2 ms)
+    √ resumen del Dueño: conteo con ceros, saldo total y saldo por orden (1 ms)
+    √ resumen del Técnico: sin saldo total ni saldos, ni consulta montos (1 ms)
 
 PASS src/app.controller.spec.ts
   AppController
     root
-      √ should return "Hello World!" (167 ms)
+      √ should return "Hello World!" (133 ms)
 
 PASS src/inventario/inventario.service.spec.ts
   InventarioService (Prisma simulado)
-    √ crear con stock inicial: registra el movimiento ENTRADA y los logs (14 ms)
+    √ crear con stock inicial: registra el movimiento ENTRADA y los logs (4 ms)
     √ crear con stock 0: sin movimiento y con STOCK_LOW origen CREACION (1 ms)
     √ referencia de un repuesto activo: 409 y no crea nada (2 ms)
-    √ referencia de un repuesto desactivado: 409 con mensaje propio (1 ms)
+    √ referencia de un repuesto desactivado: 409 con mensaje propio
     √ tipo de equipo null: 400 y no crea nada (1 ms)
     √ tipo de equipo {"activo": false, "id": 2, "nombre": "Lavadora"}: 400 y no crea nada
     √ los logs no llevan nombre ni referencia del repuesto
     √ subir el mínimo de 2 a 12 con 10 unidades: STOCK_LOW origen EDICION (1 ms)
     √ editar un repuesto que ya estaba bajo: no repite STOCK_LOW (1 ms)
-    √ editar un repuesto desactivado: 409 sin actualizar (1 ms)
-    √ entrada de 3 con 1 unidad: suma, guarda el saldo y registra STOCK_ENTRY (1 ms)
+    √ editar un repuesto desactivado: 409 sin actualizar
+    √ entrada de 3 con 1 unidad: suma, guarda el saldo y registra STOCK_ENTRY
     √ entrada en un repuesto desactivado: 409 sin tocar el stock (1 ms)
-    √ entrada en un repuesto que no existe: 404 (1 ms)
-    √ desactivar: pone activo en false y registra PART_DEACTIVATED (1 ms)
+    √ entrada en un repuesto que no existe: 404
+    √ desactivar: pone activo en false y registra PART_DEACTIVATED
     √ buscar solo stock bajo: filtra activos con cantidad <= mínimo (1 ms)
-    √ buscar "Desagüe": nombre sin tildes y referencia sin distinguir mayúsculas
-
-PASS src/clientes/clientes.service.spec.ts
-  ClientesService (Prisma simulado)
-    √ teléfono duplicado: 409 con el cliente existente y no crea nada (5 ms)
-    √ teléfono duplicado: registra CLIENT_DUPLICATE_PHONE solo con ids (2 ms)
-    √ verificar teléfono existente: lo devuelve y registra origen VERIFICACION (1 ms)
-    √ verificar el teléfono del mismo cliente (excluir): no es duplicado ni se registra (1 ms)
-    √ teléfono libre: crea el cliente con fechaAutorizacion del servidor (1 ms)
-    √ registro simultáneo (P2002): responde 409 con el cliente existente (1 ms)
-    √ editar con teléfono de otro cliente: 409 y no actualiza (1 ms)
-    √ editar solo el alterno igual al principal guardado: 400 (1 ms)
-    √ editar solo el principal igual al alterno guardado: 400 (1 ms)
-    √ editar borrando el alterno: actualiza
-    √ agregar equipo con tipo inexistente: 400 y no crea
-    √ agregar equipo válido: crea y registra EQUIPMENT_ADDED (1 ms)
-    √ buscar "Maria Fernanda": usa nombreBusqueda normalizado (1 ms)
-    √ buscar "300 123": nombre normalizado y teléfono por dígitos (1 ms)
-    √ detalle del cliente: omite nombreBusqueda
-
-PASS src/clientes/dto/dto.spec.ts
-  DTO de clientes y equipos
-    √ cliente válido: normaliza teléfono y nombre; alterno vacío queda null (7 ms)
-    √ crear con alterno igual al principal: rechazado (2 ms)
-    √ crear con alterno distinto: válido (1 ms)
-    √ editar enviando los dos teléfonos iguales: rechazado (1 ms)
-    √ sin nombre ni teléfono: rechaza ambos con mensajes claros (1 ms)
-    √ teléfono con letras: mensaje de la regla del teléfono
-    √ autorizaDatos false: rechaza el registro (1 ms)
-    √ editar: campos omitidos son válidos; null en nombre/teléfono no (1 ms)
-    √ equipo: exige tipo y marca; referencia y serial opcionales (2 ms)
-    √ equipo: la marca se guarda con la primera letra en mayúscula (1 ms)
-    √ crear con nombreBusqueda: rechazado (1 ms)
-    √ editar con nombreBusqueda: rechazado
-    √ alternoDistintoValido sin args acepta el alterno en vez de lanzar error (1 ms)
-    √ alternoDistintoValido con args rechaza el alterno igual al principal
+    √ buscar "Desagüe": nombre sin tildes y referencia sin distinguir mayúsculas (1 ms)
 
 PASS src/ordenes/dto/dto.spec.ts
   DTO de órdenes
-    √ orden válida: limpia los textos y deja vacíos como null (4 ms)
-    √ orden vacía: rechaza los obligatorios con mensajes claros (2 ms)
+    √ orden válida: limpia los textos y deja vacíos como null (5 ms)
+    √ orden vacía: rechaza los obligatorios con mensajes claros (1 ms)
     √ DOMICILIO sin dirección: la exige (1 ms)
     √ TALLER sin dirección: válida
     √ modalidad desconocida y fecha inválida: rechazadas (1 ms)
     √ número o estado enviados por el navegador: rechazados (1 ms)
     √ editar: la falla, si llega, no puede quedar vacía
-    √ editar: no permite cambiar el cliente
-    √ cotización válida (1 ms)
-    √ cotización sin diagnóstico y con decimales: mensajes de la regla (1 ms)
-    √ valor cotizado 0: El valor cotizado debe ser mayor que 0
-    √ valor cotizado 1000000000: El valor cotizado no puede superar $ 999.999.999 (12 ms)
+    √ editar: no permite cambiar el cliente (1 ms)
+    √ cotización válida
+    √ cotización sin diagnóstico y con decimales: mensajes de la regla
+    √ valor cotizado 0: El valor cotizado debe ser mayor que 0 (1 ms)
+    √ valor cotizado 1000000000: El valor cotizado no puede superar $ 999.999.999
     √ valor cotizado "180000": El valor cotizado debe ser un valor entero en pesos
-    √ estado nuevo desconocido: rechazado
+    √ estado nuevo desconocido: rechazado (1 ms)
     √ buscar: convierte la página y valida el estado
     √ pago válido: limpia la referencia y deja vacía como null (1 ms)
-    √ valor del pago undefined: El valor del pago es obligatorio (1 ms)
-    √ valor del pago "125000": El valor del pago debe ser un valor entero en pesos
-    √ valor del pago 1000.5: El valor del pago debe ser un valor entero en pesos (1 ms)
-    √ valor del pago 0: El valor del pago debe ser mayor que 0
+    √ valor del pago undefined: El valor del pago es obligatorio
+    √ valor del pago "125000": El valor del pago debe ser un valor entero en pesos (1 ms)
+    √ valor del pago 1000.5: El valor del pago debe ser un valor entero en pesos
+    √ valor del pago 0: El valor del pago debe ser mayor que 0 (1 ms)
     √ pago con medio desconocido o tipo enviado por el navegador: rechazado
-    √ recibido por "  Ana   Gómez ": válido como "Ana Gómez"
-    √ recibido por "Ana": válido como "Ana" (1 ms)
+    √ recibido por "  Ana   Gómez ": válido como "Ana Gómez" (1 ms)
+    √ recibido por "Ana": válido como "Ana"
     √ recibido por "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": válido como "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-    √ recibido por "Al": fuera de 3 a 100
+    √ recibido por "Al": fuera de 3 a 100 (1 ms)
     √ recibido por "   Al  ": fuera de 3 a 100
     √ recibido por "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": fuera de 3 a 100
     √ entregar sin nombre o con documento: rechazado (1 ms)
 
+PASS src/clientes/clientes.service.spec.ts
+  ClientesService (Prisma simulado)
+    √ teléfono duplicado: 409 con el cliente existente y no crea nada (3 ms)
+    √ teléfono duplicado: registra CLIENT_DUPLICATE_PHONE solo con ids (1 ms)
+    √ verificar teléfono existente: lo devuelve y registra origen VERIFICACION (1 ms)
+    √ verificar el teléfono del mismo cliente (excluir): no es duplicado ni se registra
+    √ teléfono libre: crea el cliente con fechaAutorizacion del servidor (1 ms)
+    √ registro simultáneo (P2002): responde 409 con el cliente existente (1 ms)
+    √ editar con teléfono de otro cliente: 409 y no actualiza (1 ms)
+    √ editar solo el alterno igual al principal guardado: 400 (1 ms)
+    √ editar solo el principal igual al alterno guardado: 400
+    √ editar borrando el alterno: actualiza
+    √ agregar equipo con tipo inexistente: 400 y no crea (1 ms)
+    √ agregar equipo válido: crea y registra EQUIPMENT_ADDED
+    √ buscar "Maria Fernanda": usa nombreBusqueda normalizado
+    √ buscar "300 123": nombre normalizado y teléfono por dígitos (1 ms)
+    √ detalle del cliente: omite nombreBusqueda
+
+PASS src/logging/error-validacion.spec.ts
+  crearErrorValidacion
+    √ guarda los nombres de los campos y no los valores (2 ms)
+
+PASS src/clientes/dto/dto.spec.ts
+  DTO de clientes y equipos
+    √ cliente válido: normaliza teléfono y nombre; alterno vacío queda null (5 ms)
+    √ crear con alterno igual al principal: rechazado (1 ms)
+    √ crear con alterno distinto: válido (1 ms)
+    √ editar enviando los dos teléfonos iguales: rechazado (1 ms)
+    √ sin nombre ni teléfono: rechaza ambos con mensajes claros (1 ms)
+    √ teléfono con letras: mensaje de la regla del teléfono (1 ms)
+    √ autorizaDatos false: rechaza el registro (1 ms)
+    √ editar: campos omitidos son válidos; null en nombre/teléfono no (1 ms)
+    √ equipo: exige tipo y marca; referencia y serial opcionales (1 ms)
+    √ equipo: la marca se guarda con la primera letra en mayúscula (1 ms)
+    √ crear con nombreBusqueda: rechazado
+    √ editar con nombreBusqueda: rechazado
+    √ alternoDistintoValido sin args acepta el alterno en vez de lanzar error
+    √ alternoDistintoValido con args rechaza el alterno igual al principal
+
 PASS src/inventario/dto/dto.spec.ts
   DTO de inventario
-    √ repuesto válido: normaliza referencia, marca y nombre (7 ms)
+    √ repuesto válido: normaliza referencia, marca y nombre (5 ms)
     √ repuesto vacío: rechaza los obligatorios con mensajes claros (1 ms)
     √ precio decimal y mínimo negativo: rechazados (1 ms)
     √ mínimo 0: válido (1 ms)
-    √ editar enviando cantidad: rechazado (1 ms)
-    √ entrada con cantidad 0: "La cantidad debe ser 1 o mayor"
+    √ editar enviando cantidad: rechazado
+    √ entrada con cantidad 0: "La cantidad debe ser 1 o mayor" (1 ms)
     √ entrada con cantidad "5": "La cantidad debe ser un número entero" (1 ms)
     √ entrada con cantidad undefined: "La cantidad es obligatoria"
     √ entrada válida: proveedor vacío queda null (1 ms)
     √ buscar con soloStockBajo=1: se convierte en true
-    √ crear con nombreBusqueda: rechazado
-    √ editar con nombreBusqueda: rechazado
+    √ crear con nombreBusqueda: rechazado (1 ms)
+    √ editar con nombreBusqueda: rechazado (1 ms)
 
-PASS src/logging/error-validacion.spec.ts
-  crearErrorValidacion
-    √ guarda los nombres de los campos y no los valores (4 ms)
+PASS src/ordenes/reglas/saldo.spec.ts
+  Regla del saldo (SWR-PAY-004)
+    √ 250000 sin pagos: saldo 250000 (2 ms)
+    √ 250000 con 125000 + 100000: saldo 25000
+    √ 250000 con pagos [250000]: saldo 0
+    √ 250000 con pagos [249999]: saldo 1
+    √ sin valor cotizado y sin pagos: null (1 ms)
+    √ sin valor cotizado con pagos: lanza RangeError (10 ms)
+    √ pagos que superan el total por 1: lanza RangeError (1 ms)
+    √ pagos [-1]: lanza RangeError (1 ms)
+    √ pagos [1000.5]: lanza RangeError
+    √ pagos [NaN]: lanza RangeError (1 ms)
+    √ valor cotizado 0: lanza RangeError
+    √ valor cotizado -1: lanza RangeError
+    √ valor cotizado 1500.5: lanza RangeError
+  Regla para validar un pago (SWR-PAY-004)
+    √ valor undefined: VACIO (1 ms)
+    √ valor null: VACIO
+    √ valor "": VACIO
+    √ valor "125000": NO_ENTERO (1 ms)
+    √ valor 1000.5: NO_ENTERO
+    √ valor NaN: NO_ENTERO
+    √ valor Infinity: NO_ENTERO (1 ms)
+    √ valor 0: MENOR_A_UNO
+    √ valor -1: MENOR_A_UNO
+    √ valor 1: válido (1 ms)
+    √ orden entregada: ORDEN_ENTREGADA
+    √ entregada con saldo 0 y valor 1: ORDEN_ENTREGADA (no SUPERA_SALDO) (1 ms)
+    √ entregada con valor vacío: VACIO (primero el valor)
+    √ RECIBIDO sin cotización: SIN_VALOR_COTIZADO (1 ms)
+    √ EN_DIAGNOSTICO sin cotización: SIN_VALOR_COTIZADO
+    √ valor = saldo (125000): válido y deja saldo 0 (1 ms)
+    √ valor = saldo + 1 (125001): SUPERA_SALDO
+    √ LISTO_PARA_ENTREGA con saldo 0 y valor 1: SUPERA_SALDO (1 ms)
+    √ EN_DIAGNOSTICO con cotización: abono de 125000 válido
+    √ EN_REPARACION con cotización: abono de 125000 válido (1 ms)
+    √ LISTO_PARA_ENTREGA con cotización: abono de 125000 válido
+  Regla del tipo de pago
+    √ pago 1 con saldo 250000: ABONO
+    √ pago 125000 con saldo 250000: ABONO (1 ms)
+    √ pago 249999 con saldo 250000: ABONO
+    √ pago 250000 con saldo 250000: SALDO
+    √ pago 1 con saldo 1: SALDO (1 ms)
+    √ pago 0 con saldo 1000: lanza RangeError
+    √ pago 1001 con saldo 1000: lanza RangeError (1 ms)
+    √ pago 10.5 con saldo 1000: lanza RangeError
+  Regla para entregar (SWR-ENT-003)
+    √ LISTO_PARA_ENTREGA con saldo 0: puede entregar
+    √ LISTO_PARA_ENTREGA con saldo 1: no puede
+    √ LISTO_PARA_ENTREGA sin cotización (saldo null): no puede
+    √ RECIBIDO con saldo 0: no puede
+    √ EN_DIAGNOSTICO con saldo 0: no puede
+    √ EN_REPARACION con saldo 0: no puede
+    √ ENTREGADO con saldo 0: no puede
+  Regla del vencimiento de la garantía
+    √ entrega a media tarde + 30 días: fin del día 30 en Colombia
+    √ entrega a las 23:59 de Colombia (04:59 UTC del día siguiente)
+    √ entrega a las 00:00 de Colombia del 11/11: cuenta desde el 11
+    √ 0 días: vence al final del día de la entrega (1 ms)
+    √ entrega el 31/12 + 1 día: fin del 01/01
+    √ días -1: lanza RangeError (1 ms)
+    √ días 1.5: lanza RangeError (1 ms)
+    √ fecha inválida: lanza RangeError
 
 PASS src/ordenes/reglas/estados.spec.ts
   Reglas de transiciones de estado
-    √ RECIBIDO -> RECIBIDO (1 ms)
+    √ RECIBIDO -> RECIBIDO (2 ms)
     √ RECIBIDO -> EN_DIAGNOSTICO
-    √ RECIBIDO -> EN_REPARACION (1 ms)
-    √ RECIBIDO -> LISTO_PARA_ENTREGA
-    √ RECIBIDO -> ENTREGADO (1 ms)
+    √ RECIBIDO -> EN_REPARACION
+    √ RECIBIDO -> LISTO_PARA_ENTREGA (1 ms)
+    √ RECIBIDO -> ENTREGADO
     √ EN_DIAGNOSTICO -> RECIBIDO
     √ EN_DIAGNOSTICO -> EN_DIAGNOSTICO
-    √ EN_DIAGNOSTICO -> EN_REPARACION (1 ms)
+    √ EN_DIAGNOSTICO -> EN_REPARACION
     √ EN_DIAGNOSTICO -> LISTO_PARA_ENTREGA
-    √ EN_DIAGNOSTICO -> ENTREGADO
-    √ EN_REPARACION -> RECIBIDO (1 ms)
+    √ EN_DIAGNOSTICO -> ENTREGADO (1 ms)
+    √ EN_REPARACION -> RECIBIDO
     √ EN_REPARACION -> EN_DIAGNOSTICO
     √ EN_REPARACION -> EN_REPARACION
     √ EN_REPARACION -> LISTO_PARA_ENTREGA
-    √ EN_REPARACION -> ENTREGADO (1 ms)
+    √ EN_REPARACION -> ENTREGADO
     √ LISTO_PARA_ENTREGA -> RECIBIDO
     √ LISTO_PARA_ENTREGA -> EN_DIAGNOSTICO
     √ LISTO_PARA_ENTREGA -> EN_REPARACION
@@ -201,18 +268,18 @@ PASS src/ordenes/reglas/estados.spec.ts
     √ ENTREGADO -> ENTREGADO: YA_ENTREGADO (antes que MISMO_ESTADO) (1 ms)
     √ EN_DIAGNOSTICO -> EN_DIAGNOSTICO: MISMO_ESTADO (1 ms)
     √ EN_REPARACION -> EN_DIAGNOSTICO: RETROCESO
-    √ RECIBIDO -> EN_REPARACION: SALTO con el siguiente en el mensaje
+    √ RECIBIDO -> EN_REPARACION: SALTO con el siguiente en el mensaje (1 ms)
     √ LISTO_PARA_ENTREGA -> ENTREGADO: ENTREGA_POR_OTRA_RUTA
-    √ a reparación sin valor cotizado: FALTA_VALOR_COTIZADO
+    √ a reparación sin valor cotizado: FALTA_VALOR_COTIZADO (8 ms)
     √ a reparación con 90000 pagados de 90001 mínimos: FALTA_ABONO
     √ a reparación con cotización y 0 pagado: FALTA_ABONO
     √ a reparación con 90001 pagados de 90001 mínimos: permitido
-    √ RECIBIDO -> EN_DIAGNOSTICO sin cotización ni pagos: permitido (1 ms)
-    √ total pagado -1: lanza RangeError (9 ms)
-    √ total pagado 10.5: lanza RangeError (1 ms)
-    √ total pagado NaN: lanza RangeError (1 ms)
-    √ siguienteEstado(RECIBIDO) = EN_DIAGNOSTICO
-    √ siguienteEstado(EN_DIAGNOSTICO) = EN_REPARACION (1 ms)
+    √ RECIBIDO -> EN_DIAGNOSTICO sin cotización ni pagos: permitido
+    √ total pagado -1: lanza RangeError (6 ms)
+    √ total pagado 10.5: lanza RangeError
+    √ total pagado NaN: lanza RangeError
+    √ siguienteEstado(RECIBIDO) = EN_DIAGNOSTICO (1 ms)
+    √ siguienteEstado(EN_DIAGNOSTICO) = EN_REPARACION
     √ siguienteEstado(EN_REPARACION) = LISTO_PARA_ENTREGA
     √ siguienteEstado(LISTO_PARA_ENTREGA) = ENTREGADO
     √ siguienteEstado(ENTREGADO) = null
@@ -221,107 +288,96 @@ PASS src/ordenes/reglas/estados.spec.ts
     √ siguientePorCambioDeEstado(ENTREGADO) = null
     √ mensajeSalto desde EN_REPARACION nombra «Listo para entrega»
 
-PASS src/ordenes/reglas/saldo.spec.ts
-  Regla del saldo (SWR-PAY-004)
-    √ 250000 sin pagos: saldo 250000 (1 ms)
-    √ 250000 con 125000 + 100000: saldo 25000
-    √ 250000 con pagos [250000]: saldo 0
-    √ 250000 con pagos [249999]: saldo 1 (1 ms)
-    √ sin valor cotizado y sin pagos: null
-    √ sin valor cotizado con pagos: lanza RangeError (7 ms)
-    √ pagos que superan el total por 1: lanza RangeError (1 ms)
-    √ pagos [-1]: lanza RangeError (1 ms)
-    √ pagos [1000.5]: lanza RangeError
-    √ pagos [NaN]: lanza RangeError (1 ms)
-    √ valor cotizado 0: lanza RangeError (1 ms)
-    √ valor cotizado -1: lanza RangeError
-    √ valor cotizado 1500.5: lanza RangeError (1 ms)
-  Regla para validar un pago (SWR-PAY-004)
-    √ valor undefined: VACIO (9 ms)
-    √ valor null: VACIO
-    √ valor "": VACIO
-    √ valor "125000": NO_ENTERO
-    √ valor 1000.5: NO_ENTERO
-    √ valor NaN: NO_ENTERO
-    √ valor Infinity: NO_ENTERO (1 ms)
-    √ valor 0: MENOR_A_UNO
-    √ valor -1: MENOR_A_UNO (1 ms)
-    √ valor 1: válido
-    √ orden entregada: ORDEN_ENTREGADA
-    √ entregada con saldo 0 y valor 1: ORDEN_ENTREGADA (no SUPERA_SALDO) (1 ms)
-    √ entregada con valor vacío: VACIO (primero el valor)
-    √ RECIBIDO sin cotización: SIN_VALOR_COTIZADO
-    √ EN_DIAGNOSTICO sin cotización: SIN_VALOR_COTIZADO (1 ms)
-    √ valor = saldo (125000): válido y deja saldo 0
-    √ valor = saldo + 1 (125001): SUPERA_SALDO
-    √ LISTO_PARA_ENTREGA con saldo 0 y valor 1: SUPERA_SALDO
-    √ EN_DIAGNOSTICO con cotización: abono de 125000 válido (1 ms)
-    √ EN_REPARACION con cotización: abono de 125000 válido
-    √ LISTO_PARA_ENTREGA con cotización: abono de 125000 válido
-  Regla del tipo de pago
-    √ pago 1 con saldo 250000: ABONO
-    √ pago 125000 con saldo 250000: ABONO
-    √ pago 249999 con saldo 250000: ABONO
-    √ pago 250000 con saldo 250000: SALDO
-    √ pago 1 con saldo 1: SALDO
-    √ pago 0 con saldo 1000: lanza RangeError (1 ms)
-    √ pago 1001 con saldo 1000: lanza RangeError
-    √ pago 10.5 con saldo 1000: lanza RangeError
-  Regla para entregar (SWR-ENT-003)
-    √ LISTO_PARA_ENTREGA con saldo 0: puede entregar
-    √ LISTO_PARA_ENTREGA con saldo 1: no puede
-    √ LISTO_PARA_ENTREGA sin cotización (saldo null): no puede
-    √ RECIBIDO con saldo 0: no puede
-    √ EN_DIAGNOSTICO con saldo 0: no puede
-    √ EN_REPARACION con saldo 0: no puede (1 ms)
-    √ ENTREGADO con saldo 0: no puede
-  Regla del vencimiento de la garantía
-    √ entrega a media tarde + 30 días: fin del día 30 en Colombia
-    √ entrega a las 23:59 de Colombia (04:59 UTC del día siguiente)
-    √ entrega a las 00:00 de Colombia del 11/11: cuenta desde el 11
-    √ 0 días: vence al final del día de la entrega
-    √ entrega el 31/12 + 1 día: fin del 01/01
-    √ días -1: lanza RangeError
-    √ días 1.5: lanza RangeError (1 ms)
-    √ fecha inválida: lanza RangeError
-
 PASS src/ordenes/reglas/abono.spec.ts
   Regla del abono mínimo
-    √ 180000 al 50 %: 90000 (1 ms)
+    √ 180000 al 50 %: 90000 (2 ms)
     √ 180001 al 50 %: 90001 (nunca menos del 50 %)
-    √ 1 al 50 %: 1 (1 ms)
+    √ 1 al 50 %: 1
     √ 180001 al 0 %: 0
-    √ 180001 al 100 %: 180001 (1 ms)
+    √ 180001 al 100 %: 180001
     √ 999999999 al 50 %: 500000000
-    √ valor 0: lanza RangeError (8 ms)
+    √ valor 0: lanza RangeError (5 ms)
     √ valor -1000: lanza RangeError (1 ms)
     √ valor 1500.5: lanza RangeError (1 ms)
-    √ valor NaN: lanza RangeError (1 ms)
+    √ valor NaN: lanza RangeError
     √ porcentaje -1: lanza RangeError (1 ms)
-    √ porcentaje 101: lanza RangeError (1 ms)
+    √ porcentaje 101: lanza RangeError
     √ porcentaje 50.5: lanza RangeError (1 ms)
 
-PASS src/clientes/reglas/telefono.spec.ts
-  Reglas del teléfono del cliente
-    √ 9 dígitos: inválido por longitud (2 ms)
-    √ 10 dígitos: válido (1 ms)
-    √ 11 dígitos: inválido por longitud
-    √ con letras (10 caracteres): inválido por caracteres (1 ms)
-    √ con espacios (300 123 4567): válido y normalizado
-    √ con guiones (300-123-4567): válido y normalizado
-    √ con espacios y 9 dígitos: inválido por longitud
-    √ camino 1a: valor no texto (undefined) → VACIO
-    √ camino 1b: solo espacios y guiones → VACIO
-    √ camino 2: con +57 o puntos → CARACTERES_INVALIDOS
-    √ normalizarTelefono quita espacios (incluido tabulador) y guiones
-    √ principal "3001234567" y alterno "3001234567": iguales (1 ms)
-    √ principal "300 123 4567" y alterno "300-123-4567": iguales
-    √ principal "3001234567" y alterno " 300 1234567 ": iguales
-    √ camino 1: sin alterno (undefined): no son iguales
-    √ camino 1: alterno null: no son iguales
-    √ camino 1: sin principal: no son iguales
-    √ camino 2: alterno vacío: no son iguales
-    √ camino 3: números distintos: no son iguales
+PASS src/ordenes/reglas/cotizacion.spec.ts
+  Reglas de la cotización aprobada
+    √ EN_DIAGNOSTICO con 0 pagos: permitido (2 ms)
+    √ EN_DIAGNOSTICO con 1 pago: TIENE_PAGOS
+    √ RECIBIDO con 0 pagos: ESTADO_NO_PERMITE (1 ms)
+    √ EN_REPARACION con 0 pagos: ESTADO_NO_PERMITE
+    √ LISTO_PARA_ENTREGA con 0 pagos: ESTADO_NO_PERMITE
+    √ ENTREGADO con 0 pagos: ESTADO_NO_PERMITE
+    √ EN_REPARACION con pagos: ESTADO_NO_PERMITE (primero el estado)
+    √ cantidad de pagos -1: lanza RangeError (7 ms)
+    √ cantidad de pagos 1.5: lanza RangeError
+    √ cantidad de pagos NaN: lanza RangeError
+    √ valor undefined: VACIO (1 ms)
+    √ valor null: VACIO
+    √ valor "": VACIO
+    √ valor "180000": NO_ENTERO
+    √ valor 1500.5: NO_ENTERO (1 ms)
+    √ valor NaN: NO_ENTERO
+    √ valor 0: MENOR_A_UNO
+    √ valor -5000: MENOR_A_UNO
+    √ valor 1: válido
+    √ valor 999999999: válido
+    √ valor 1000000000: MAYOR_AL_TOPE
+
+PASS src/ordenes/reglas/numero-orden.spec.ts
+  Reglas del número de orden
+    √ 2026 con consecutivo 1: MS-2026-00001 (2 ms)
+    √ 2026 con consecutivo 427: MS-2026-00427
+    √ 2026 con consecutivo 99999: MS-2026-99999 (1 ms)
+    √ consecutivo 0: lanza RangeError (6 ms)
+    √ consecutivo -1: lanza RangeError (1 ms)
+    √ consecutivo 100000: lanza RangeError
+    √ consecutivo 2.5: lanza RangeError (1 ms)
+    √ consecutivo NaN: lanza RangeError
+    √ año 999: lanza RangeError (1 ms)
+    √ año 10000: lanza RangeError (1 ms)
+    √ año 2026.5: lanza RangeError (1 ms)
+    √ 2027-01-01T04:59:59Z: todavía es 2026 en Colombia
+    √ 2027-01-01T05:00:00Z: ya es 2027 en Colombia
+    √ 2026-11-09T15:00:00Z: 2026 (1 ms)
+    √ fecha inválida: lanza RangeError
+
+PASS src/auth/reglas/roles.spec.ts
+  RolesGuard — decisión de acceso por rol
+    √ Técnico en ruta solo Dueño: acceso denegado (1 ms)
+    √ Dueño en ruta solo Dueño: acceso permitido (1 ms)
+    √ ruta sin roles requeridos: cualquier rol autenticado entra
+    √ usuario sin rol: acceso denegado
+    √ matriz AJ-03: permisos de Técnico y Dueño (2 ms)
+
+PASS src/inventario/reglas/stock.spec.ts
+  Reglas del stock de repuestos
+    √ 4 con mínimo 5: stock bajo (1 ms)
+    √ 5 con mínimo 5: stock bajo
+    √ 6 con mínimo 5: stock normal
+    √ mínimo 0: con 0 es bajo y con 1 es normal (1 ms)
+    √ cantidad -1 con mínimo 5: lanza RangeError (8 ms)
+    √ cantidad 3 con mínimo -1: lanza RangeError
+    √ cantidad 2.5 con mínimo 5: lanza RangeError (1 ms)
+    √ cantidad NaN con mínimo 5: lanza RangeError
+    √ repuesto nuevo con stock en el mínimo: ENTRA_EN_BAJO (1 ms)
+    √ subir el mínimo de 2 a 5 con 4 unidades: ENTRA_EN_BAJO
+    √ entrada de 1 con 0 unidades y mínimo 3: SIGUE_BAJO
+    √ entrada de 10 con 1 unidad y mínimo 3: SALE_DE_BAJO
+    √ repuesto nuevo con 10 unidades y mínimo 2: NORMAL
+    √ cantidad undefined: inválida por VACIO
+    √ cantidad null: inválida por VACIO (1 ms)
+    √ cantidad "": inválida por VACIO
+    √ cantidad "5": inválida por NO_ENTERO
+    √ cantidad 2.5: inválida por NO_ENTERO (1 ms)
+    √ cantidad NaN: inválida por NO_ENTERO
+    √ cantidad 0: inválida por MENOR_A_UNO
+    √ cantidad -3: inválida por MENOR_A_UNO
+    √ cantidad 1: válida (1 ms)
 
 PASS src/auth/reglas/bloqueo.spec.ts
   Reglas de bloqueo de cuenta
@@ -331,106 +387,53 @@ PASS src/auth/reglas/bloqueo.spec.ts
     √ bloqueo vigente: falta 1 minuto, sigue bloqueada (1 ms)
     √ bloqueo vencido: ya no está bloqueada y el conteo reinicia
     √ bloqueo que vence exactamente ahora: ya no está bloqueada
-    √ login correcto: reinicia el contador y quita el bloqueo
+    √ login correcto: reinicia el contador y quita el bloqueo (1 ms)
 
-PASS src/ordenes/reglas/numero-orden.spec.ts
-  Reglas del número de orden
-    √ 2026 con consecutivo 1: MS-2026-00001 (3 ms)
-    √ 2026 con consecutivo 427: MS-2026-00427
-    √ 2026 con consecutivo 99999: MS-2026-99999 (1 ms)
-    √ consecutivo 0: lanza RangeError (7 ms)
-    √ consecutivo -1: lanza RangeError (1 ms)
-    √ consecutivo 100000: lanza RangeError (1 ms)
-    √ consecutivo 2.5: lanza RangeError (1 ms)
-    √ consecutivo NaN: lanza RangeError (1 ms)
-    √ año 999: lanza RangeError
-    √ año 10000: lanza RangeError
-    √ año 2026.5: lanza RangeError (1 ms)
-    √ 2027-01-01T04:59:59Z: todavía es 2026 en Colombia
-    √ 2027-01-01T05:00:00Z: ya es 2027 en Colombia (1 ms)
-    √ 2026-11-09T15:00:00Z: 2026
-    √ fecha inválida: lanza RangeError (1 ms)
+PASS src/comun/texto-busqueda.spec.ts
+  Texto de búsqueda sin tildes (defecto 7)
+    √ "María Fernanda Ortiz" y "Maria Fernanda Ortiz": mismo texto (3 ms)
+    √ "áéíóú" -> "aeiou"
+    √ "ÁÉÍÓÚ" -> "aeiou" (1 ms)
+    √ "àèìòù" -> "aeiou"
+    √ "Bomba de desagüe" -> "bomba de desague" (1 ms)
+    √ "Muñoz" -> "munoz" (ñ como n, igual que unaccent) (1 ms)
+    √ "NÚÑEZ" -> "nunez" (ñ como n, igual que unaccent)
+    √ "ORTIZ" -> "ortiz" (1 ms)
+    √ "  María   Fernanda\t " -> "maria fernanda"
+    √ "MS-2026-00002" -> "ms-2026-00002" (1 ms)
+    √ "" -> ""
+    √ "   " -> ""
+    √ una tilde suelta "\u0301" -> ""
+
+PASS src/clientes/reglas/telefono.spec.ts
+  Reglas del teléfono del cliente
+    √ 9 dígitos: inválido por longitud (3 ms)
+    √ 10 dígitos: válido
+    √ 11 dígitos: inválido por longitud (1 ms)
+    √ con letras (10 caracteres): inválido por caracteres
+    √ con espacios (300 123 4567): válido y normalizado (1 ms)
+    √ con guiones (300-123-4567): válido y normalizado
+    √ con espacios y 9 dígitos: inválido por longitud
+    √ camino 1a: valor no texto (undefined) → VACIO (1 ms)
+    √ camino 1b: solo espacios y guiones → VACIO
+    √ camino 2: con +57 o puntos → CARACTERES_INVALIDOS
+    √ normalizarTelefono quita espacios (incluido tabulador) y guiones
+    √ principal "3001234567" y alterno "3001234567": iguales
+    √ principal "300 123 4567" y alterno "300-123-4567": iguales
+    √ principal "3001234567" y alterno " 300 1234567 ": iguales (1 ms)
+    √ camino 1: sin alterno (undefined): no son iguales
+    √ camino 1: alterno null: no son iguales
+    √ camino 1: sin principal: no son iguales
+    √ camino 2: alterno vacío: no son iguales
+    √ camino 3: números distintos: no son iguales
 
 PASS src/logging/enmascarar.spec.ts
   enmascararCorreo
     √ deja la primera letra y el dominio (2 ms)
     √ texto sin @ o vacío se oculta por completo (1 ms)
 
-PASS src/inventario/reglas/stock.spec.ts
-  Reglas del stock de repuestos
-    √ 4 con mínimo 5: stock bajo (2 ms)
-    √ 5 con mínimo 5: stock bajo
-    √ 6 con mínimo 5: stock normal
-    √ mínimo 0: con 0 es bajo y con 1 es normal
-    √ cantidad -1 con mínimo 5: lanza RangeError (9 ms)
-    √ cantidad 3 con mínimo -1: lanza RangeError (1 ms)
-    √ cantidad 2.5 con mínimo 5: lanza RangeError
-    √ cantidad NaN con mínimo 5: lanza RangeError (1 ms)
-    √ repuesto nuevo con stock en el mínimo: ENTRA_EN_BAJO (1 ms)
-    √ subir el mínimo de 2 a 5 con 4 unidades: ENTRA_EN_BAJO
-    √ entrada de 1 con 0 unidades y mínimo 3: SIGUE_BAJO
-    √ entrada de 10 con 1 unidad y mínimo 3: SALE_DE_BAJO (1 ms)
-    √ repuesto nuevo con 10 unidades y mínimo 2: NORMAL
-    √ cantidad undefined: inválida por VACIO (1 ms)
-    √ cantidad null: inválida por VACIO (1 ms)
-    √ cantidad "": inválida por VACIO
-    √ cantidad "5": inválida por NO_ENTERO
-    √ cantidad 2.5: inválida por NO_ENTERO
-    √ cantidad NaN: inválida por NO_ENTERO
-    √ cantidad 0: inválida por MENOR_A_UNO
-    √ cantidad -3: inválida por MENOR_A_UNO
-    √ cantidad 1: válida
-
-PASS src/ordenes/reglas/cotizacion.spec.ts
-  Reglas de la cotización aprobada
-    √ EN_DIAGNOSTICO con 0 pagos: permitido (3 ms)
-    √ EN_DIAGNOSTICO con 1 pago: TIENE_PAGOS (1 ms)
-    √ RECIBIDO con 0 pagos: ESTADO_NO_PERMITE
-    √ EN_REPARACION con 0 pagos: ESTADO_NO_PERMITE
-    √ LISTO_PARA_ENTREGA con 0 pagos: ESTADO_NO_PERMITE
-    √ ENTREGADO con 0 pagos: ESTADO_NO_PERMITE
-    √ EN_REPARACION con pagos: ESTADO_NO_PERMITE (primero el estado) (1 ms)
-    √ cantidad de pagos -1: lanza RangeError (7 ms)
-    √ cantidad de pagos 1.5: lanza RangeError
-    √ cantidad de pagos NaN: lanza RangeError (1 ms)
-    √ valor undefined: VACIO
-    √ valor null: VACIO
-    √ valor "": VACIO
-    √ valor "180000": NO_ENTERO
-    √ valor 1500.5: NO_ENTERO
-    √ valor NaN: NO_ENTERO
-    √ valor 0: MENOR_A_UNO (1 ms)
-    √ valor -5000: MENOR_A_UNO
-    √ valor 1: válido
-    √ valor 999999999: válido (1 ms)
-    √ valor 1000000000: MAYOR_AL_TOPE
-
-PASS src/comun/texto-busqueda.spec.ts
-  Texto de búsqueda sin tildes (defecto 7)
-    √ "María Fernanda Ortiz" y "Maria Fernanda Ortiz": mismo texto (2 ms)
-    √ "áéíóú" -> "aeiou"
-    √ "ÁÉÍÓÚ" -> "aeiou"
-    √ "àèìòù" -> "aeiou"
-    √ "Bomba de desagüe" -> "bomba de desague"
-    √ "Muñoz" -> "munoz" (ñ como n, igual que unaccent)
-    √ "NÚÑEZ" -> "nunez" (ñ como n, igual que unaccent)
-    √ "ORTIZ" -> "ortiz" (1 ms)
-    √ "  María   Fernanda\t " -> "maria fernanda"
-    √ "MS-2026-00002" -> "ms-2026-00002"
-    √ "" -> ""
-    √ "   " -> ""
-    √ una tilde suelta "\u0301" -> ""
-
-PASS src/auth/reglas/roles.spec.ts
-  RolesGuard — decisión de acceso por rol
-    √ Técnico en ruta solo Dueño: acceso denegado (2 ms)
-    √ Dueño en ruta solo Dueño: acceso permitido
-    √ ruta sin roles requeridos: cualquier rol autenticado entra
-    √ usuario sin rol: acceso denegado (1 ms)
-    √ matriz AJ-03: permisos de Técnico y Dueño (1 ms)
-
 Test Suites: 20 passed, 20 total
-Tests:       359 passed, 359 total
+Tests:       360 passed, 360 total
 Snapshots:   0 total
-Time:        8.027 s, estimated 9 s
+Time:        7.691 s, estimated 43 s
 Ran all test suites.

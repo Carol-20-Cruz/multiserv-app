@@ -23,7 +23,7 @@ Si `expect` no se cumple, Jest marca la prueba en rojo y dice qué esperaba y qu
 
 ## Pruebas escogidas y trazabilidad con los SWR
 
-Se escogieron 11 de las 359 pruebas del backend, una o dos por cada regla del negocio. La mayoría son de **valor límite**, porque es ahí donde se esconden los errores: la diferencia entre `>` y `>=` solo se nota justo en el borde.
+Se escogieron 11 de las 360 pruebas del backend, una o dos por cada regla del negocio. La mayoría son de **valor límite**, porque es ahí donde se esconden los errores: la diferencia entre `>` y `>=` solo se nota justo en el borde.
 
 | ID | Archivo → nombre del test | Regla / SWR | Tipo |
 |---|---|---|---|
@@ -34,7 +34,7 @@ Se escogieron 11 de las 359 pruebas del backend, una o dos por cada regla del ne
 | UT-05 | `ordenes/reglas/abono.spec.ts` → «180001 al 50 %: 90001 (nunca menos del 50 %)» | Abono mínimo · SWR-CON-003, AJ-10 | Límite |
 | UT-06 | `ordenes/reglas/saldo.spec.ts` → «valor = saldo + 1 (125001): SUPERA_SALDO» | Saldo y pagos · SWR-PAY-004 | Límite |
 | UT-07 | `ordenes/reglas/estados.spec.ts` → «RECIBIDO -> EN_REPARACION: SALTO con el siguiente en el mensaje» | Estados · SWR-ORD-011, AJ-07 | Inválido |
-| UT-08 | `ordenes/reglas/cotizacion.spec.ts` → «EN_DIAGNOSTICO con 1 pago: TIENE_PAGOS» | Cotización · AJ-09 | Inválido (límite: 1 pago) |
+| UT-08 | `ordenes/reglas/cotizacion.spec.ts` → «EN_DIAGNOSTICO con 1 pago: TIENE_PAGOS» | Cotización · SWR-PAY-004 (AJ-09) | Inválido (límite: 1 pago) |
 | UT-09 | `inventario/reglas/stock.spec.ts` → «5 con mínimo 5: stock bajo» | Stock · SWR-INV-009 | Límite |
 | UT-10 | `ordenes/reglas/numero-orden.spec.ts` → «2027-01-01T04:59:59Z: todavía es 2026 en Colombia» | Número de orden · SWR-ORD-002, AJ-06 | Límite |
 | UT-11 | `ordenes/reglas/saldo.spec.ts` → «0 días: vence al final del día de la entrega» | Garantía · SWR-ENT-003 | Límite |
@@ -197,6 +197,7 @@ it('RECIBIDO -> EN_REPARACION: SALTO con el siguiente en el mensaje', () => {
 **Qué prueba:** la cotización se puede corregir mientras no haya pagos. Con **un solo** pago el valor queda fijo, porque ya hay plata recibida sobre ese precio. Con 0 pagos sí se permite (prueba hermana «EN_DIAGNOSTICO con 0 pagos: permitido»).
 
 ```ts
+// UT-08 · SWR-PAY-004 (ajuste AJ-09)
 // Camino 3 (frontera): con 1 pago el valor queda fijo (respuesta de la dueña).
 it('EN_DIAGNOSTICO con 1 pago: TIENE_PAGOS', () => {
   // Arrange: orden EN_DIAGNOSTICO con 1 pago registrado; van directo
@@ -256,6 +257,7 @@ it('2027-01-01T04:59:59Z: todavía es 2026 en Colombia', () => {
 **Qué prueba:** el borde inferior de la garantía. Con 0 días, la garantía dura hasta las 11:59:59 p. m. (hora Colombia) del mismo día de la entrega. En UTC eso es `04:59:59.999` del día siguiente.
 
 ```ts
+// UT-11 · SWR-ENT-003
 // Frontera: 0 días -> vence al final del mismo día de la entrega.
 it('0 días: vence al final del día de la entrega', () => {
   // Arrange (anotado): entrega el 10/11/2026 a las 3:00 p. m. de Colombia
@@ -269,18 +271,18 @@ it('0 días: vence al final del día de la entrega', () => {
 });
 ```
 
-## Resultado de la ejecución (15-nov-2026, local, Windows)
+## Resultado de la ejecución (16-nov-2026, local, Windows)
 
 | Dato | Valor |
 |---|---|
 | Archivos de prueba (suites) | **20/20 PASS** |
-| Pruebas | **359/359 PASS** (0 fallidas, 0 omitidas) |
-| Tiempo total | **8,0 s** (una sola hebra, `--runInBand`); unos 11 s en paralelo |
-| Las 11 pruebas escogidas | **11/11 PASS**, cada una entre 0 y 2 ms |
+| Pruebas | **360/360 PASS** (0 fallidas, 0 omitidas) |
+| Tiempo total | **7,7 s** (una sola hebra, `--runInBand`) |
+| Las 11 pruebas escogidas | **11/11 PASS**, cada una entre 0 y 1 ms |
 
 La salida completa, con el nombre de cada prueba, está en [`resultado-jest.txt`](resultado-jest.txt). Las rutas del computador aparecen como `<repo>`.
 
-Las 359 pruebas incluyen, además de las reglas, los servicios con la base de datos simulada (`*.service.spec.ts`), los DTO y el guard de roles. También corren en GitHub Actions en cada PR.
+Las 360 pruebas incluyen, además de las reglas, los servicios con la base de datos simulada (`*.service.spec.ts`), los DTO y el guard de roles. También corren en GitHub Actions en cada PR.
 
 ## Cómo correrlas
 
@@ -315,7 +317,7 @@ Los dos comandos se probaron en PowerShell y en Git Bash.
 
 ## Decisiones de calidad
 
-- **Funciones puras:** las reglas no tocan la base ni el reloj, así que se prueban sin montar NestJS ni Supabase. Por eso 359 pruebas corren en segundos.
+- **Funciones puras:** las reglas no tocan la base ni el reloj, así que se prueban sin montar NestJS ni Supabase. Por eso 360 pruebas corren en segundos.
 - **Valores límite:** casi todas las reglas tienen el trío «uno antes, justo en el borde, uno después» (4/5 intentos, 9/10/11 dígitos, saldo/saldo + 1, 4/5/6 unidades).
 - **Una sola acción por prueba:** el `// Act` llama una vez a la función. Si una prueba falla, el nombre dice exactamente qué caso se rompió.
 - **Sin datos reales:** nombres, teléfonos y montos son inventados. Ninguna prueba lee el `.env`.

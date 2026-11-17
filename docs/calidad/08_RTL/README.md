@@ -29,7 +29,7 @@ Se escogieron 16 de las 106 pruebas, dos por cada criterio que pide el enunciado
 | RTL-11 | Autenticación | `auth/login/login-form.test.tsx` → «campos vacíos: muestra los dos errores y no llama a la API» | «El correo es obligatorio» y «La contraseña es obligatoria», sin llamar al backend | SWR-AUTH-001 |
 | RTL-12 | Autenticación | `auth/login/login-form.test.tsx` → «el backend responde 401: muestra «Credenciales inválidas» y no entra» | Se ve «Credenciales inválidas» y no navega al Inicio | SWR-AUTH-001 |
 | RTL-13 | Botones | `ordenes/avanzar-estado.test.tsx` → «bloqueo FALTA_ABONO: botón deshabilitado y aviso con los montos» | Sin abono, el botón para pasar a reparación está deshabilitado y dice cuánto falta | AJ-10 |
-| RTL-14 | Botones | `ordenes/avanzar-estado.test.tsx` → «doble clic en Confirmar cambio: se envía una sola vez» | Con dos clics seguidos solo sale una petición | Verificación doble clic |
+| RTL-14 | Botones + Loading | `ordenes/avanzar-estado.test.tsx` → «doble clic en Confirmar cambio: se envía una sola vez» | Con dos clics seguidos solo sale una petición. También cubre el estado de carga: mientras guarda, el botón queda deshabilitado y dice «Guardando...» | Verificación doble clic |
 | RTL-15 | Mensaje de éxito | `clientes/mensaje-exito.test.tsx` → «se muestra una vez, limpia la URL y no aparece si el cliente se desactiva» | El aviso verde aparece una vez y la URL queda limpia | SWR-CLI-001, SWR-DATA-005 |
 | RTL-16 | Mensaje de éxito | `clientes/cliente-form/cliente-form.test.tsx` → «datos válidos: registra, muestra el mensaje de éxito y abre el detalle» | «Cliente registrado correctamente.», teléfono enviado sin espacios y paso al detalle | SWR-CLI-001, AJ-08 |
 

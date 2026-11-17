@@ -7,7 +7,7 @@ Sistema web para la gestión de servicios de MultiServ, desarrollado como proyec
 ## Autoras
 
 - Carol Liceth Cruz Roa
-- Vanesa Vargas Gamboa
+- Vanessa Vargas Gamboa
 
 ## Tecnologías
 
