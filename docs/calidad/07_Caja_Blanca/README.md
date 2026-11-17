@@ -8,9 +8,9 @@ Se analizan 3 bloques del backend. Los tres son funciones puras, ya están proba
 
 | Bloque | Archivo | Función |
 |---|---|---|
-| 1 · Bloqueo de cuenta | [`backend/src/auth/reglas/bloqueo.ts`](../../../backend/src/auth/reglas/bloqueo.ts) | `estaBloqueada`, `registrarIntentoFallido` |
-| 2 · Teléfono | [`backend/src/clientes/reglas/telefono.ts`](../../../backend/src/clientes/reglas/telefono.ts) | `validarTelefono` (y `alternoIgualAlPrincipal`) |
-| 3 · Cambio de estado de la orden | [`backend/src/ordenes/reglas/estados.ts`](../../../backend/src/ordenes/reglas/estados.ts) | `evaluarTransicion` |
+| 1 · Bloqueo de cuenta | [`backend/src/auth/reglas/bloqueo.ts`](../../../backend/src/auth/reglas/bloqueo.ts) | `estaBloqueada` (bloqueo.ts:18), `registrarIntentoFallido` (bloqueo.ts:37) |
+| 2 · Teléfono | [`backend/src/clientes/reglas/telefono.ts`](../../../backend/src/clientes/reglas/telefono.ts) | `validarTelefono` (telefono.ts:29) (y `alternoIgualAlPrincipal`, telefono.ts:57) |
+| 3 · Cambio de estado de la orden | [`backend/src/ordenes/reglas/estados.ts`](../../../backend/src/ordenes/reglas/estados.ts) | `evaluarTransicion` (estados.ts:94) |
 
 **Salida de la cobertura:** [`cobertura-reglas.txt`](cobertura-reglas.txt)
 
